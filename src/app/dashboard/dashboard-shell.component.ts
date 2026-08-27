@@ -18,8 +18,8 @@ import { TimeSeriesWidgetComponent } from './time-series-widget.component';
       <section class="widget-grid" aria-label="Dashboard widgets">
         @for (widget of store.dashboard().widgets; track widget.id) {
           @switch (widget.type) {
-            @case ('kpi') { <app-kpi-widget [widget]="widget" /> }
-            @case ('time-series') { <app-time-series-widget [widget]="widget" /> }
+            @case ('kpi') { <app-kpi-widget [widget]="widget" [value]="store.demoData().monthlyRevenue" /> }
+            @case ('time-series') { <app-time-series-widget [widget]="widget" [values]="store.demoData().monthlyRevenueTrend" /> }
             @case ('notes') { <app-notes-widget [widget]="widget" /> }
           }
         }

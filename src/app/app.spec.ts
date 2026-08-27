@@ -23,7 +23,10 @@ describe('App', () => {
 
     expect(compiled.querySelector('h1')?.textContent).toContain('My dashboard');
     expect(compiled.textContent).toContain('Monthly revenue');
+    expect(compiled.textContent).toContain('$124,500');
     expect(compiled.textContent).toContain('Revenue trend');
+    expect(compiled.textContent).toContain('Jan–Apr · steady growth');
     expect(compiled.textContent).toContain('Team notes');
+    expect(compiled.textContent).toContain('Review monthly progress with the team on Friday.');
   });
 });
