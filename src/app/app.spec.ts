@@ -16,10 +16,14 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('should render title', () => {
+  it('shows the seeded dashboard with each supported widget type', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, da-da-dashboard');
+
+    expect(compiled.querySelector('h1')?.textContent).toContain('My dashboard');
+    expect(compiled.textContent).toContain('Monthly revenue');
+    expect(compiled.textContent).toContain('Revenue trend');
+    expect(compiled.textContent).toContain('Team notes');
   });
 });

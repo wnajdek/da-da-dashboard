@@ -1,0 +1,8 @@
+:host { display: block; height: 100%; }
+.widget-card { background: #fff; border: 1px solid #d9e0ea; border-radius: 0.75rem; box-shadow: 0 0.25rem 0.75rem rgb(23 32 51 / 0.06); box-sizing: border-box; height: 100%; min-height: 13rem; padding: 1.25rem; }
+h2 { color: #172033; font-size: 1.25rem; margin: 0.4rem 0 1rem; }
+.kpi-value { color: #075b67; font-size: 2rem; font-weight: 700; margin: 1.5rem 0 0.25rem; }
+.widget-caption, .notes-body { color: #526079; margin: 0; }
+.notes-body { line-height: 1.5; }
+.trend { align-items: end; display: flex; gap: 0.55rem; height: 5rem; margin: 1.25rem 0; }
+.trend span { background: #0b8a9b; border-radius: 0.2rem 0.2rem 0 0; display: block; flex: 1; }
