@@ -1,4 +1,6 @@
 export type WidgetType = 'kpi' | 'time-series' | 'notes';
+export type KpiDataSourceKey = 'monthly-revenue';
+export type TimeSeriesDataSourceKey = 'monthly-revenue-trend';
 
 export interface GridLayout {
   readonly x: number;
@@ -17,7 +19,7 @@ export interface KpiWidgetInstance extends WidgetInstanceBase {
   readonly type: 'kpi';
   readonly configuration: {
     readonly title: string;
-    readonly dataSource: 'monthly-revenue';
+    readonly dataSource: KpiDataSourceKey;
     readonly displayFormat: 'currency';
   };
 }
@@ -26,7 +28,7 @@ export interface TimeSeriesWidgetInstance extends WidgetInstanceBase {
   readonly type: 'time-series';
   readonly configuration: {
     readonly title: string;
-    readonly dataSource: 'monthly-revenue-trend';
+    readonly dataSource: TimeSeriesDataSourceKey;
   };
 }
 
