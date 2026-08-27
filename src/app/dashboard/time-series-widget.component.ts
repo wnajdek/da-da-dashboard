@@ -15,13 +15,15 @@ import { TimeSeriesWidgetInstance } from './dashboard.models';
       <p class="widget-caption">Jan–Apr · steady growth</p>
     </article>
   `,
-  styleUrl: './widget-card.scss'
+  styleUrl: './widget-card.scss',
 })
 export class TimeSeriesWidgetComponent {
   readonly widget = input.required<TimeSeriesWidgetInstance>();
   readonly values = input.required<readonly number[]>();
 
   protected trendSummary(): string {
-    return `Revenue trend: ${this.values().map((value) => `$${value / 1000}k`).join(', ')}`;
+    return `Revenue trend: ${this.values()
+      .map((value) => `$${value / 1000}k`)
+      .join(', ')}`;
   }
 }

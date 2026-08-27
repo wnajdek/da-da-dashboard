@@ -40,7 +40,8 @@ export interface NotesWidgetInstance extends WidgetInstanceBase {
   };
 }
 
-export type WidgetInstance = KpiWidgetInstance | TimeSeriesWidgetInstance | NotesWidgetInstance;
+export type WidgetInstance =
+  KpiWidgetInstance | TimeSeriesWidgetInstance | NotesWidgetInstance;
 
 export interface Dashboard {
   readonly id: string;

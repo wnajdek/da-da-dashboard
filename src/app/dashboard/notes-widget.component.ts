@@ -10,7 +10,7 @@ import { NotesWidgetInstance } from './dashboard.models';
       <p class="notes-body">{{ widget().configuration.body }}</p>
     </article>
   `,
-  styleUrl: './widget-card.scss'
+  styleUrl: './widget-card.scss',
 })
 export class NotesWidgetComponent {
   readonly widget = input.required<NotesWidgetInstance>();

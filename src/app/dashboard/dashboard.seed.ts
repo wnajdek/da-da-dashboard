@@ -12,8 +12,8 @@ export function createSeedDashboard(): Dashboard {
         configuration: {
           title: 'Monthly revenue',
           dataSource: 'monthly-revenue',
-          displayFormat: 'currency'
-        }
+          displayFormat: 'currency',
+        },
       },
       {
         id: '33514934-7fbf-4c2b-a15c-b0d38c6c7a92',
@@ -21,8 +21,8 @@ export function createSeedDashboard(): Dashboard {
         layout: { x: 3, y: 0, w: 6, h: 3 },
         configuration: {
           title: 'Revenue trend',
-          dataSource: 'monthly-revenue-trend'
-        }
+          dataSource: 'monthly-revenue-trend',
+        },
       },
       {
         id: 'ea79d695-84db-431a-87a5-73d1a371344c',
@@ -30,9 +30,9 @@ export function createSeedDashboard(): Dashboard {
         layout: { x: 9, y: 0, w: 3, h: 3 },
         configuration: {
           title: 'Team notes',
-          body: 'Review monthly progress with the team on Friday.'
-        }
-      }
-    ]
+          body: 'Review monthly progress with the team on Friday.',
+        },
+      },
+    ],
   };
 }

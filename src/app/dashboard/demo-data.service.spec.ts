@@ -6,6 +6,8 @@ describe('DemoDataService', () => {
     const service = TestBed.inject(DemoDataService);
 
     expect(service.kpiValueFor('monthly-revenue')).toBe(124500);
-    expect(service.timeSeriesValuesFor('monthly-revenue-trend')).toEqual([94000, 101000, 109000, 117000]);
+    expect(service.timeSeriesValuesFor('monthly-revenue-trend')).toEqual([
+      94000, 101000, 109000, 117000,
+    ]);
   });
 });

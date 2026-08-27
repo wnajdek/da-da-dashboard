@@ -10,7 +10,7 @@ export interface DemoData {
 export class DemoDataService {
   readonly #data = signal<DemoData>({
     'monthly-revenue': 124500,
-    'monthly-revenue-trend': [94000, 101000, 109000, 117000]
+    'monthly-revenue-trend': [94000, 101000, 109000, 117000],
   });
 
   readonly data: Signal<DemoData> = this.#data.asReadonly();
