@@ -1,17 +1,12 @@
 import { Component, inject } from '@angular/core';
-import { DemoDataService } from './demo-data.service';
+import { NgComponentOutlet } from '@angular/common';
+import { WidgetContext, WidgetInstance, WidgetType } from './dashboard.models';
 import { DashboardStore } from './dashboard.store';
-import { KpiWidgetComponent } from './kpi-widget.component';
-import { NotesWidgetComponent } from './notes-widget.component';
-import { TimeSeriesWidgetComponent } from './time-series-widget.component';
+import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
 
 @Component({
   selector: 'app-dashboard-shell',
-  imports: [
-    KpiWidgetComponent,
-    TimeSeriesWidgetComponent,
-    NotesWidgetComponent,
-  ],
+  imports: [NgComponentOutlet],
   template: `
     <main class="dashboard">
       @if (store.recoveryMessage(); as recoveryMessage) {
@@ -30,33 +25,29 @@ import { TimeSeriesWidgetComponent } from './time-series-widget.component';
           <p class="subtitle">
             A seeded workspace for exploring your team's pulse.
           </p>
+          <div class="add-widget">
+            <label for="widget-type">Add a widget</label>
+            <select id="widget-type" (change)="selectWidgetType($event)">
+              @for (widgetType of widgetTypes; track widgetType) {
+                <option [value]="widgetType">{{ widgetType }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              data-testid="add-widget"
+              (click)="store.addWidget(selectedWidgetType)"
+            >
+              Add widget
+            </button>
+          </div>
         </header>
 
         <section class="widget-grid" aria-label="Dashboard widgets">
           @for (widget of dashboard.widgets; track widget.id) {
-            @switch (widget.type) {
-              @case ('kpi') {
-                <app-kpi-widget
-                  [widget]="widget"
-                  [value]="
-                    demoData.kpiValueFor(widget.configuration.dataSource)
-                  "
-                />
-              }
-              @case ('time-series') {
-                <app-time-series-widget
-                  [widget]="widget"
-                  [values]="
-                    demoData.timeSeriesValuesFor(
-                      widget.configuration.dataSource
-                    )
-                  "
-                />
-              }
-              @case ('notes') {
-                <app-notes-widget [widget]="widget" />
-              }
-            }
+            <ng-container
+              [ngComponentOutlet]="widgetRegistry[widget.type]"
+              [ngComponentOutletInputs]="{ context: widgetContext(widget) }"
+            />
           }
         </section>
       }
@@ -66,5 +57,23 @@ import { TimeSeriesWidgetComponent } from './time-series-widget.component';
 })
 export class DashboardShellComponent {
   protected readonly store = inject(DashboardStore);
-  protected readonly demoData = inject(DemoDataService);
+  protected readonly widgetRegistry = BUILT_IN_WIDGET_REGISTRY;
+  protected readonly widgetTypes: readonly WidgetType[] = [
+    'kpi',
+    'time-series',
+    'notes',
+  ];
+  protected selectedWidgetType: WidgetType = 'kpi';
+
+  protected selectWidgetType(event: Event): void {
+    const type = (event.target as HTMLSelectElement).value;
+
+    if (type === 'kpi' || type === 'time-series' || type === 'notes') {
+      this.selectedWidgetType = type;
+    }
+  }
+
+  protected widgetContext(widget: WidgetInstance): WidgetContext {
+    return { widget };
+  }
 }

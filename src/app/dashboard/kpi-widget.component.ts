@@ -1,6 +1,7 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, input } from '@angular/core';
-import { KpiWidgetInstance } from './dashboard.models';
+import { Component, inject, input } from '@angular/core';
+import { DemoDataService } from './demo-data.service';
+import { KpiWidgetInstance, WidgetContext } from './dashboard.models';
 
 @Component({
   selector: 'app-kpi-widget',
@@ -8,9 +9,12 @@ import { KpiWidgetInstance } from './dashboard.models';
   template: `
     <article class="widget-card">
       <p class="widget-kind">KPI</p>
-      <h2>{{ widget().configuration.title }}</h2>
+      <h2>{{ context().widget.configuration.title }}</h2>
       <p class="kpi-value">
-        {{ value() | currency: 'USD' : 'symbol' : '1.0-0' }}
+        {{
+          demoData.kpiValueFor(context().widget.configuration.dataSource)
+            | currency: 'USD' : 'symbol' : '1.0-0'
+        }}
       </p>
       <p class="widget-caption">Current month</p>
     </article>
@@ -18,6 +22,6 @@ import { KpiWidgetInstance } from './dashboard.models';
   styleUrl: './widget-card.scss',
 })
 export class KpiWidgetComponent {
-  readonly widget = input.required<KpiWidgetInstance>();
-  readonly value = input.required<number>();
+  readonly context = input.required<WidgetContext<KpiWidgetInstance>>();
+  protected readonly demoData = inject(DemoDataService);
 }

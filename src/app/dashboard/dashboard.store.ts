@@ -1,5 +1,5 @@
 import { Injectable, Signal, signal } from '@angular/core';
-import { Dashboard } from './dashboard.models';
+import { Dashboard, WidgetInstance, WidgetType } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
 
@@ -32,6 +32,23 @@ export class DashboardStore {
     this.#loadSeedDashboard();
   }
 
+  addWidget(type: WidgetType): void {
+    const dashboard = this.#dashboard();
+
+    if (dashboard === null) {
+      return;
+    }
+
+    const updatedDashboard: Dashboard = {
+      ...dashboard,
+      widgets: [...dashboard.widgets, createDefaultWidget(type, dashboard)],
+    };
+
+    if (this.persistence.save(updatedDashboard)) {
+      this.#dashboard.set(updatedDashboard);
+    }
+  }
+
   #loadSeedDashboard(): void {
     const dashboard = createSeedDashboard();
 
@@ -43,5 +60,55 @@ export class DashboardStore {
 
     this.#dashboard.set(dashboard);
     this.#recoveryMessage.set(null);
+  }
+}
+
+function createDefaultWidget(
+  type: WidgetType,
+  dashboard: Dashboard,
+): WidgetInstance {
+  const layout = {
+    x: 0,
+    y: Math.max(
+      0,
+      ...dashboard.widgets.map((widget) => widget.layout.y + widget.layout.h),
+    ),
+    w: 3,
+    h: 2,
+  };
+  const id = crypto.randomUUID();
+
+  switch (type) {
+    case 'kpi':
+      return {
+        id,
+        type,
+        layout,
+        configuration: {
+          title: 'Monthly revenue',
+          dataSource: 'monthly-revenue',
+          displayFormat: 'currency',
+        },
+      };
+    case 'time-series':
+      return {
+        id,
+        type,
+        layout,
+        configuration: {
+          title: 'Revenue trend',
+          dataSource: 'monthly-revenue-trend',
+        },
+      };
+    case 'notes':
+      return {
+        id,
+        type,
+        layout,
+        configuration: {
+          title: 'New note',
+          body: 'Add your notes here.',
+        },
+      };
   }
 }

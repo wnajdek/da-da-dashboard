@@ -30,6 +30,29 @@ h1 {
   margin: 0.5rem 0 0;
 }
 
+.add-widget {
+  align-items: end;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.add-widget label {
+  color: #526079;
+  font-weight: 700;
+}
+
+.add-widget select {
+  border: 1px solid #9aa6ba;
+  border-radius: 0.375rem;
+  font: inherit;
+  padding: 0.5rem;
+}
+
+.add-widget button {
+  margin-top: 0;
+}
+
 .recovery {
   background: #fff7ed;
   border: 1px solid #fdba74;

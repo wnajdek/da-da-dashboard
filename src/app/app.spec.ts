@@ -37,6 +37,57 @@ describe('App', () => {
     );
   });
 
+  it('adds the chosen built-in Widget Instance and persists it', () => {
+    const storage = new MemoryStorage();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+      ],
+    });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const widgetTypeSelect = compiled.querySelector(
+      '#widget-type',
+    ) as HTMLSelectElement;
+
+    for (const widgetType of ['kpi', 'time-series', 'notes'] as const) {
+      widgetTypeSelect.value = widgetType;
+      widgetTypeSelect.dispatchEvent(new Event('change'));
+      (
+        compiled.querySelector(
+          '[data-testid="add-widget"]',
+        ) as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+    }
+
+    expect(compiled.querySelectorAll('.widget-card').length).toBe(6);
+    expect(compiled.textContent).toContain('New note');
+    expect(
+      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!).dashboard
+        .widgets,
+    ).toHaveSize(6);
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+      ],
+    });
+    const reloadedFixture = TestBed.createComponent(App);
+    reloadedFixture.detectChanges();
+
+    expect(
+      reloadedFixture.nativeElement.querySelectorAll('.widget-card').length,
+    ).toBe(6);
+  });
+
   it('shows recovery and lets the user explicitly reset invalid saved data', () => {
     TestBed.resetTestingModule();
     const storage = new MemoryStorage();

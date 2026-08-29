@@ -4,8 +4,12 @@
 
 **Blocked by:** 02: Versioned Dashboard Snapshot persistence and recovery.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] The user can choose any supported Widget Type and add a visible Widget Instance with an ID, default configuration, and default Grid Layout.
-- [ ] Every supported Widget Type resolves to one dynamically rendered standalone Widget component; unknown types cannot enter the Dashboard state.
-- [ ] Adding a Widget persists it in the Dashboard Snapshot and remains visible after reload.
+- [x] The user can choose any supported Widget Type and add a visible Widget Instance with an ID, default configuration, and default Grid Layout.
+- [x] Every supported Widget Type resolves to one dynamically rendered standalone Widget component; unknown types cannot enter the Dashboard state.
+- [x] Adding a Widget persists it in the Dashboard Snapshot and remains visible after reload.
+
+## Comments
+
+- Implemented the typed built-in widget registry and add flow. `ng build` passes; Karma bundles the complete suite but cannot run browser assertions because this environment has no Chrome/Chromium executable.

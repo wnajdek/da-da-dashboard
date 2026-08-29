@@ -44,6 +44,52 @@ describe('DashboardStore', () => {
     expect(store.dashboard()).toEqual(dashboard);
   });
 
+  it('adds each supported Widget Type with defaults below the existing layout', () => {
+    const store = TestBed.inject(DashboardStore);
+
+    store.addWidget('kpi');
+    store.addWidget('time-series');
+    store.addWidget('notes');
+
+    const addedWidgets = store.dashboard()!.widgets.slice(3);
+    expect(addedWidgets).toEqual([
+      jasmine.objectContaining({
+        id: jasmine.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+        ),
+        type: 'kpi',
+        layout: { x: 0, y: 3, w: 3, h: 2 },
+        configuration: {
+          title: 'Monthly revenue',
+          dataSource: 'monthly-revenue',
+          displayFormat: 'currency',
+        },
+      }),
+      jasmine.objectContaining({
+        id: jasmine.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+        ),
+        type: 'time-series',
+        layout: { x: 0, y: 5, w: 3, h: 2 },
+        configuration: {
+          title: 'Revenue trend',
+          dataSource: 'monthly-revenue-trend',
+        },
+      }),
+      jasmine.objectContaining({
+        id: jasmine.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+        ),
+        type: 'notes',
+        layout: { x: 0, y: 7, w: 3, h: 2 },
+        configuration: {
+          title: 'New note',
+          body: 'Add your notes here.',
+        },
+      }),
+    ]);
+  });
+
   it('requires an explicit reset before replacing unusable saved data', () => {
     storage.setItem('configurable-dashboard.snapshot', 'invalid');
     const store = TestBed.inject(DashboardStore);

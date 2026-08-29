@@ -48,3 +48,7 @@ export interface Dashboard {
   readonly title: string;
   readonly widgets: readonly WidgetInstance[];
 }
+
+export interface WidgetContext<T extends WidgetInstance = WidgetInstance> {
+  readonly widget: T;
+}
