@@ -1,13 +1,12 @@
 import { Component, inject } from '@angular/core';
-import { NgComponentOutlet } from '@angular/common';
-import { WidgetContext, WidgetInstance, WidgetType } from './dashboard.models';
+import { WidgetType } from './dashboard.models';
 import { DashboardStore } from './dashboard.store';
 import { WidgetConfigurationEditorComponent } from './widget-configuration-editor.component';
-import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
+import { DashboardGridComponent } from './dashboard-grid.component';
 
 @Component({
   selector: 'app-dashboard-shell',
-  imports: [NgComponentOutlet, WidgetConfigurationEditorComponent],
+  imports: [DashboardGridComponent, WidgetConfigurationEditorComponent],
   template: `
     <main class="dashboard">
       @if (store.recoveryMessage(); as recoveryMessage) {
@@ -50,34 +49,12 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
           </div>
         </header>
 
-        <section class="widget-grid" aria-label="Dashboard widgets">
-          @for (widget of dashboard.widgets; track widget.id) {
-            <section class="widget-instance">
-              <div class="widget-content">
-                <ng-container
-                  [ngComponentOutlet]="widgetRegistry[widget.type]"
-                  [ngComponentOutletInputs]="{ context: widgetContext(widget) }"
-                />
-              </div>
-              <button
-                type="button"
-                class="edit-widget"
-                [attr.data-testid]="'edit-' + widget.configuration.title"
-                (click)="store.selectWidget(widget.id)"
-              >
-                Edit {{ widget.configuration.title }}
-              </button>
-              <button
-                type="button"
-                class="remove-widget"
-                [attr.data-testid]="'remove-' + widget.configuration.title"
-                (click)="store.removeWidget(widget.id)"
-              >
-                Remove {{ widget.configuration.title }}
-              </button>
-            </section>
-          }
-        </section>
+        <app-dashboard-grid
+          [dashboard]="dashboard"
+          (layoutCommitted)="store.commitGridLayoutChange($event)"
+          (widgetSelected)="store.selectWidget($event)"
+          (widgetRemoved)="store.removeWidget($event)"
+        />
 
         @if (store.canUndoRemoval()) {
           <aside class="removal-notice" aria-live="polite">
@@ -108,7 +85,6 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
 })
 export class DashboardShellComponent {
   protected readonly store = inject(DashboardStore);
-  protected readonly widgetRegistry = BUILT_IN_WIDGET_REGISTRY;
   protected readonly widgetTypes: readonly WidgetType[] = [
     'kpi',
     'time-series',
@@ -122,9 +98,5 @@ export class DashboardShellComponent {
     if (type === 'kpi' || type === 'time-series' || type === 'notes') {
       this.selectedWidgetType = type;
     }
-  }
-
-  protected widgetContext(widget: WidgetInstance): WidgetContext {
-    return { widget };
   }
 }

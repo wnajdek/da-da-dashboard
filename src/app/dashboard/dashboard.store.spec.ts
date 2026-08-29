@@ -139,6 +139,26 @@ describe('DashboardStore', () => {
     );
   });
 
+  it('commits final portable Grid Layout changes and persists them', () => {
+    const store = TestBed.inject(DashboardStore);
+    const [kpiWidget, timeSeriesWidget] = store.dashboard()!.widgets;
+
+    store.commitGridLayoutChange([
+      { id: kpiWidget.id, layout: { x: 6, y: 4, w: 4, h: 3 } },
+      { id: timeSeriesWidget.id, layout: { x: 0, y: 0, w: 6, h: 4 } },
+    ]);
+
+    expect(store.dashboard()!.widgets.slice(0, 2)).toEqual([
+      jasmine.objectContaining({ layout: { x: 6, y: 4, w: 4, h: 3 } }),
+      jasmine.objectContaining({ layout: { x: 0, y: 0, w: 6, h: 4 } }),
+    ]);
+    expect(
+      JSON.parse(
+        storage.getItem('configurable-dashboard.snapshot')!,
+      ).dashboard.widgets.slice(0, 2),
+    ).toEqual(store.dashboard()!.widgets.slice(0, 2));
+  });
+
   it('requires an explicit reset before replacing unusable saved data', () => {
     storage.setItem('configurable-dashboard.snapshot', 'invalid');
     const store = TestBed.inject(DashboardStore);

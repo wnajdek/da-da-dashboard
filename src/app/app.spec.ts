@@ -61,6 +61,22 @@ describe('App', () => {
     ).not.toBeNull();
   });
 
+  it('gives every Widget Instance a dedicated drag handle outside its content', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const widgets = [...compiled.querySelectorAll('.grid-stack-item')];
+
+    expect(widgets).toHaveSize(3);
+    expect(
+      widgets.every(
+        (widget) =>
+          widget.querySelector('.widget-drag-handle') !== null &&
+          widget.querySelector('.widget-content .widget-drag-handle') === null,
+      ),
+    ).toBeTrue();
+  });
+
   it('adds the chosen built-in Widget Instance and persists it', () => {
     const storage = new MemoryStorage();
     TestBed.resetTestingModule();

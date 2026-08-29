@@ -3,6 +3,7 @@ import {
   Dashboard,
   WidgetConfigurationUpdate,
   WidgetInstance,
+  WidgetLayoutChange,
   WidgetType,
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
@@ -148,6 +149,30 @@ export class DashboardStore {
 
   refreshDemoData(): void {
     this.demoData.refresh();
+  }
+
+  commitGridLayoutChange(changes: readonly WidgetLayoutChange[]): void {
+    const dashboard = this.#dashboard();
+
+    if (dashboard === null || changes.length === 0) {
+      return;
+    }
+
+    const layoutsByWidgetId = new Map(
+      changes.map((change) => [change.id, change.layout]),
+    );
+    const updatedDashboard: Dashboard = {
+      ...dashboard,
+      widgets: dashboard.widgets.map((widget) => {
+        const layout = layoutsByWidgetId.get(widget.id);
+
+        return layout === undefined ? widget : { ...widget, layout };
+      }),
+    };
+
+    if (this.persistence.save(updatedDashboard)) {
+      this.#dashboard.set(updatedDashboard);
+    }
   }
 
   updateWidgetConfiguration(

@@ -72,39 +72,6 @@ button {
   padding: 0.625rem 0.875rem;
 }
 
-.widget-grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 2rem;
-}
-
-.widget-instance {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.widget-content {
-  min-height: 13rem;
-}
-
-.widget-content > * {
-  height: 100%;
-}
-
-.edit-widget {
-  background: #fff;
-  border: 1px solid #9aa6ba;
-  color: #172033;
-  margin-top: 0.5rem;
-}
-
-.remove-widget {
-  background: #b42318;
-  margin-left: 0.5rem;
-}
-
 .removal-notice {
   align-items: center;
   background: #172033;
@@ -124,10 +91,4 @@ button {
   background: white;
   color: #172033;
   margin: 0;
-}
-
-@media (max-width: 48rem) {
-  .widget-grid {
-    grid-template-columns: 1fr;
-  }
 }

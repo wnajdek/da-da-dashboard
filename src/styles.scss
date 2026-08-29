@@ -1,2 +1,9 @@
-html { background: #f5f7fb; font-family: Inter, system-ui, sans-serif; }
-body { margin: 0; }
+@import "gridstack/dist/gridstack.css";
+
+html {
+  background: #f5f7fb;
+  font-family: Inter, system-ui, sans-serif;
+}
+body {
+  margin: 0;
+}

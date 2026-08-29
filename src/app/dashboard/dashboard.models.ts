@@ -9,6 +9,11 @@ export interface GridLayout {
   readonly h: number;
 }
 
+export interface WidgetLayoutChange {
+  readonly id: string;
+  readonly layout: GridLayout;
+}
+
 interface WidgetInstanceBase {
   readonly id: string;
   readonly type: WidgetType;
