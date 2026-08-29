@@ -80,7 +80,17 @@ button {
 }
 
 .widget-instance {
+  display: flex;
+  flex-direction: column;
   position: relative;
+}
+
+.widget-content {
+  min-height: 13rem;
+}
+
+.widget-content > * {
+  height: 100%;
 }
 
 .edit-widget {

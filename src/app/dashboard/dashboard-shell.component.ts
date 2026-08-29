@@ -46,10 +46,12 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
         <section class="widget-grid" aria-label="Dashboard widgets">
           @for (widget of dashboard.widgets; track widget.id) {
             <section class="widget-instance">
-              <ng-container
-                [ngComponentOutlet]="widgetRegistry[widget.type]"
-                [ngComponentOutletInputs]="{ context: widgetContext(widget) }"
-              />
+              <div class="widget-content">
+                <ng-container
+                  [ngComponentOutlet]="widgetRegistry[widget.type]"
+                  [ngComponentOutletInputs]="{ context: widgetContext(widget) }"
+                />
+              </div>
               <button
                 type="button"
                 class="edit-widget"
