@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  Injector,
   afterNextRender,
   effect,
   inject,
@@ -86,12 +87,15 @@ export class DashboardGridComponent implements AfterViewInit {
   private readonly gridElement =
     viewChild.required<ElementRef<HTMLElement>>('grid');
   readonly #destroyRef = inject(DestroyRef);
+  readonly #injector = inject(Injector);
   #grid: GridStack | null = null;
 
   constructor() {
     effect(() => {
       this.dashboard();
-      afterNextRender(() => this.#synchronizeGridItems());
+      afterNextRender(() => this.#synchronizeGridItems(), {
+        injector: this.#injector,
+      });
     });
   }
 
