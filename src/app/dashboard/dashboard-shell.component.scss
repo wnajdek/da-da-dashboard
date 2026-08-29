@@ -92,3 +92,14 @@ button {
   color: #172033;
   margin: 0;
 }
+
+@media (max-width: 767px) {
+  .dashboard {
+    padding: 2rem 1rem;
+  }
+
+  .add-widget {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

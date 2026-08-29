@@ -40,3 +40,39 @@ button {
   border-color: #b42318;
   color: white;
 }
+
+.grid-stack--single-column {
+  height: auto !important;
+}
+
+.grid-stack--single-column > .grid-stack-item {
+  height: auto !important;
+  left: auto !important;
+  position: static !important;
+  top: auto !important;
+  transform: none !important;
+  width: auto !important;
+}
+
+.grid-stack--single-column > .grid-stack-item > .grid-stack-item-content {
+  bottom: auto !important;
+  left: auto !important;
+  position: static !important;
+  right: auto !important;
+  top: auto !important;
+}
+
+.grid-stack--single-column .grid-stack-item {
+  margin-bottom: 1rem;
+}
+
+.grid-stack--single-column .widget-drag-handle {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .widget-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

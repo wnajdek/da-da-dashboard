@@ -3,12 +3,14 @@ import {
   Component,
   DestroyRef,
   ElementRef,
+  HostListener,
   Injector,
   afterNextRender,
   effect,
   inject,
   input,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
@@ -27,7 +29,12 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
   standalone: true,
   imports: [NgComponentOutlet],
   template: `
-    <section #grid class="grid-stack" aria-label="Dashboard widgets">
+    <section
+      #grid
+      class="grid-stack"
+      [class.grid-stack--single-column]="narrowScreen()"
+      aria-label="Dashboard widgets"
+    >
       @for (widget of dashboard().widgets; track widget.id) {
         @let gridWidget = gridStackWidget(widget);
         <section
@@ -83,6 +90,7 @@ export class DashboardGridComponent implements AfterViewInit {
   readonly widgetSelected = output<string>();
   readonly widgetRemoved = output<string>();
   protected readonly widgetRegistry = BUILT_IN_WIDGET_REGISTRY;
+  protected readonly narrowScreen = signal(window.innerWidth <= 767);
 
   private readonly gridElement =
     viewChild.required<ElementRef<HTMLElement>>('grid');
@@ -110,7 +118,20 @@ export class DashboardGridComponent implements AfterViewInit {
       this.gridElement().nativeElement,
     );
     this.#grid.on('dragstop resizestop', () => this.#commitFinalLayout());
+    this.#updateGridInteractivity();
     this.#destroyRef.onDestroy(() => this.#grid?.destroy(false));
+  }
+
+  @HostListener('window:resize')
+  protected updateScreenPresentation(): void {
+    const isNarrowScreen = window.innerWidth <= 767;
+
+    if (isNarrowScreen === this.narrowScreen()) {
+      return;
+    }
+
+    this.narrowScreen.set(isNarrowScreen);
+    this.#updateGridInteractivity();
   }
 
   #synchronizeGridItems(): void {
@@ -159,6 +180,19 @@ export class DashboardGridComponent implements AfterViewInit {
       .filter((change): change is WidgetLayoutChange => change !== null);
 
     this.layoutCommitted.emit(changes);
+  }
+
+  #updateGridInteractivity(): void {
+    if (this.#grid === null) {
+      return;
+    }
+
+    if (this.narrowScreen()) {
+      this.#grid.disable();
+      return;
+    }
+
+    this.#grid.enable();
   }
 
   protected widgetContext(widget: WidgetInstance): WidgetContext {

@@ -77,6 +77,69 @@ describe('App', () => {
     ).toBeTrue();
   });
 
+  it('presents Widgets in one column on a narrow screen without changing their desktop Grid Layout', () => {
+    const storage = new MemoryStorage();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+      ],
+    });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const originalInnerWidth = Object.getOwnPropertyDescriptor(
+      window,
+      'innerWidth',
+    );
+    const savedLayouts = JSON.parse(
+      storage.getItem('configurable-dashboard.snapshot')!,
+    ).dashboard.widgets.map((widget: { layout: unknown }) => widget.layout);
+
+    try {
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 600,
+      });
+      window.dispatchEvent(new Event('resize'));
+      fixture.detectChanges();
+
+      const cards = [...compiled.querySelectorAll<HTMLElement>('.widget-card')];
+
+      expect(cards).toHaveSize(3);
+      const cardBounds = cards.map((card) => card.getBoundingClientRect());
+      expect(
+        cardBounds
+          .slice(1)
+          .every((card, index) => card.top >= cardBounds[index].bottom),
+      ).toBeTrue();
+      expect(
+        JSON.parse(
+          storage.getItem('configurable-dashboard.snapshot')!,
+        ).dashboard.widgets.map((widget: { layout: unknown }) => widget.layout),
+      ).toEqual(savedLayouts);
+
+      Object.defineProperty(window, 'innerWidth', {
+        configurable: true,
+        value: 1_024,
+      });
+      window.dispatchEvent(new Event('resize'));
+      fixture.detectChanges();
+
+      expect(
+        JSON.parse(
+          storage.getItem('configurable-dashboard.snapshot')!,
+        ).dashboard.widgets.map((widget: { layout: unknown }) => widget.layout),
+      ).toEqual(savedLayouts);
+    } finally {
+      if (originalInnerWidth !== undefined) {
+        Object.defineProperty(window, 'innerWidth', originalInnerWidth);
+      }
+    }
+  });
+
   it('adds the chosen built-in Widget Instance and persists it', () => {
     const storage = new MemoryStorage();
     TestBed.resetTestingModule();
