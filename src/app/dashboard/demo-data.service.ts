@@ -22,4 +22,13 @@ export class DemoDataService {
   timeSeriesValuesFor(source: TimeSeriesDataSourceKey): readonly number[] {
     return this.data()[source];
   }
+
+  refresh(): void {
+    this.#data.update((data) => ({
+      'monthly-revenue': data['monthly-revenue'] + 2500,
+      'monthly-revenue-trend': data['monthly-revenue-trend'].map(
+        (value) => value + 2000,
+      ),
+    }));
+  }
 }

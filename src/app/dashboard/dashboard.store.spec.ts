@@ -2,6 +2,7 @@ import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { DASHBOARD_STORAGE } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
 import { DashboardStore } from './dashboard.store';
+import { DemoDataService } from './demo-data.service';
 import { MemoryStorage } from '../testing/memory-storage';
 
 class WriteFailingStorage extends MemoryStorage {
@@ -124,6 +125,19 @@ describe('DashboardStore', () => {
     store.undoWidgetRemoval();
     expect(store.dashboard()!.widgets).not.toContain(removedWidget);
   }));
+
+  it('refreshes resolved Demo Data without changing the persisted Dashboard', () => {
+    const store = TestBed.inject(DashboardStore);
+    const demoData = TestBed.inject(DemoDataService);
+    const savedDashboard = storage.getItem('configurable-dashboard.snapshot');
+
+    store.refreshDemoData();
+
+    expect(demoData.kpiValueFor('monthly-revenue')).toBe(127000);
+    expect(storage.getItem('configurable-dashboard.snapshot')).toBe(
+      savedDashboard,
+    );
+  });
 
   it('requires an explicit reset before replacing unusable saved data', () => {
     storage.setItem('configurable-dashboard.snapshot', 'invalid');

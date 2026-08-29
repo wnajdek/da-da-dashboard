@@ -7,6 +7,7 @@ import {
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
+import { DemoDataService } from './demo-data.service';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
 
@@ -39,7 +40,10 @@ export class DashboardStore {
     () => this.#pendingWidgetRemoval() !== null,
   );
 
-  constructor(private readonly persistence: DashboardPersistenceService) {
+  constructor(
+    private readonly persistence: DashboardPersistenceService,
+    private readonly demoData: DemoDataService,
+  ) {
     const result = this.persistence.load();
 
     if (result.status === 'ready') {
@@ -140,6 +144,10 @@ export class DashboardStore {
       this.#dashboard.set(restoredDashboard);
       this.#clearPendingWidgetRemoval();
     }
+  }
+
+  refreshDemoData(): void {
+    this.demoData.refresh();
   }
 
   updateWidgetConfiguration(

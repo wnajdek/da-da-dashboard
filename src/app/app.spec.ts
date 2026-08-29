@@ -133,6 +133,49 @@ describe('App', () => {
     ).toHaveSize(3);
   });
 
+  it('refreshes the visible KPI and Time-Series Widget data', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    const widgetTypeSelect = compiled.querySelector(
+      '#widget-type',
+    ) as HTMLSelectElement;
+
+    for (const widgetType of ['kpi', 'time-series'] as const) {
+      widgetTypeSelect.value = widgetType;
+      widgetTypeSelect.dispatchEvent(new Event('change'));
+      (
+        compiled.querySelector(
+          '[data-testid="add-widget"]',
+        ) as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+    }
+
+    (
+      compiled.querySelector(
+        '[data-testid="refresh-dashboard"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain('$127,000');
+    expect([...compiled.querySelectorAll('.kpi-value')]).toHaveSize(2);
+    expect(
+      [...compiled.querySelectorAll('.kpi-value')].every((value) =>
+        value.textContent?.includes('$127,000'),
+      ),
+    ).toBeTrue();
+    expect([...compiled.querySelectorAll('.trend')]).toHaveSize(2);
+    expect(
+      [...compiled.querySelectorAll('.trend')].every(
+        (trend) =>
+          trend.getAttribute('aria-label') ===
+          'Revenue trend: $96k, $103k, $111k, $119k',
+      ),
+    ).toBeTrue();
+  });
+
   it('edits a selected Notes Widget Instance and restores it after reload', () => {
     const storage = new MemoryStorage();
     TestBed.resetTestingModule();

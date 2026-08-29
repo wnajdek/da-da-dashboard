@@ -40,6 +40,13 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
             >
               Add widget
             </button>
+            <button
+              type="button"
+              data-testid="refresh-dashboard"
+              (click)="store.refreshDemoData()"
+            >
+              Refresh demo data
+            </button>
           </div>
         </header>
 
