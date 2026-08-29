@@ -8,11 +8,20 @@ import {
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
 
+const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
+
+interface PendingWidgetRemoval {
+  readonly widget: WidgetInstance;
+  readonly index: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DashboardStore {
   readonly #dashboard = signal<Dashboard | null>(null);
   readonly #recoveryMessage = signal<string | null>(null);
   readonly #selectedWidgetId = signal<string | null>(null);
+  readonly #pendingWidgetRemoval = signal<PendingWidgetRemoval | null>(null);
+  #undoRemovalTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly dashboard: Signal<Dashboard | null> = this.#dashboard.asReadonly();
   readonly recoveryMessage: Signal<string | null> =
@@ -26,6 +35,9 @@ export class DashboardStore {
       null
     );
   });
+  readonly canUndoRemoval = computed(
+    () => this.#pendingWidgetRemoval() !== null,
+  );
 
   constructor(private readonly persistence: DashboardPersistenceService) {
     const result = this.persistence.load();
@@ -74,6 +86,62 @@ export class DashboardStore {
     this.#selectedWidgetId.set(null);
   }
 
+  removeWidget(id: string): void {
+    const dashboard = this.#dashboard();
+
+    if (dashboard === null) {
+      return;
+    }
+
+    const index = dashboard.widgets.findIndex((widget) => widget.id === id);
+
+    if (index === -1) {
+      return;
+    }
+
+    const widget = dashboard.widgets[index];
+    const updatedDashboard: Dashboard = {
+      ...dashboard,
+      widgets: dashboard.widgets.filter((candidate) => candidate.id !== id),
+    };
+
+    if (!this.persistence.save(updatedDashboard)) {
+      return;
+    }
+
+    this.#clearPendingWidgetRemoval();
+    this.#dashboard.set(updatedDashboard);
+    this.#selectedWidgetId.set(null);
+    this.#pendingWidgetRemoval.set({ widget, index });
+    this.#undoRemovalTimer = setTimeout(() => {
+      this.#pendingWidgetRemoval.set(null);
+      this.#undoRemovalTimer = null;
+    }, WIDGET_REMOVAL_UNDO_DURATION_MS);
+  }
+
+  undoWidgetRemoval(): void {
+    const dashboard = this.#dashboard();
+    const pendingRemoval = this.#pendingWidgetRemoval();
+
+    if (dashboard === null || pendingRemoval === null) {
+      return;
+    }
+
+    const restoredDashboard: Dashboard = {
+      ...dashboard,
+      widgets: [
+        ...dashboard.widgets.slice(0, pendingRemoval.index),
+        pendingRemoval.widget,
+        ...dashboard.widgets.slice(pendingRemoval.index),
+      ],
+    };
+
+    if (this.persistence.save(restoredDashboard)) {
+      this.#dashboard.set(restoredDashboard);
+      this.#clearPendingWidgetRemoval();
+    }
+  }
+
   updateWidgetConfiguration(
     id: string,
     update: WidgetConfigurationUpdate,
@@ -108,6 +176,15 @@ export class DashboardStore {
 
     this.#dashboard.set(dashboard);
     this.#recoveryMessage.set(null);
+  }
+
+  #clearPendingWidgetRemoval(): void {
+    if (this.#undoRemovalTimer !== null) {
+      clearTimeout(this.#undoRemovalTimer);
+      this.#undoRemovalTimer = null;
+    }
+
+    this.#pendingWidgetRemoval.set(null);
   }
 }
 

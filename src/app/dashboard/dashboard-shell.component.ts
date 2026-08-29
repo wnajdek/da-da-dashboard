@@ -58,9 +58,30 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
               >
                 Edit {{ widget.configuration.title }}
               </button>
+              <button
+                type="button"
+                class="remove-widget"
+                [attr.data-testid]="'remove-' + widget.configuration.title"
+                (click)="store.removeWidget(widget.id)"
+              >
+                Remove {{ widget.configuration.title }}
+              </button>
             </section>
           }
         </section>
+
+        @if (store.canUndoRemoval()) {
+          <aside class="removal-notice" aria-live="polite">
+            <span>Widget removed.</span>
+            <button
+              type="button"
+              data-testid="undo-removal"
+              (click)="store.undoWidgetRemoval()"
+            >
+              Undo
+            </button>
+          </aside>
+        }
 
         @if (store.selectedWidget(); as selectedWidget) {
           <app-widget-configuration-editor

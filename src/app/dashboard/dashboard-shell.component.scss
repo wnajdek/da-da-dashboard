@@ -90,6 +90,28 @@ button {
   margin-top: 0.5rem;
 }
 
+.remove-widget {
+  background: #b42318;
+  margin-left: 0.5rem;
+}
+
+.removal-notice {
+  align-items: center;
+  background: #172033;
+  border-radius: 0.5rem;
+  color: white;
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.removal-notice button {
+  background: white;
+  color: #172033;
+  margin: 0;
+}
+
 @media (max-width: 48rem) {
   .widget-grid {
     grid-template-columns: 1fr;

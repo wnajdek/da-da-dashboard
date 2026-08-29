@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { DASHBOARD_STORAGE } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
 import { DashboardStore } from './dashboard.store';
@@ -89,6 +89,41 @@ describe('DashboardStore', () => {
       }),
     ]);
   });
+
+  it('removes a Widget Instance and restores its exact place with undo', () => {
+    const store = TestBed.inject(DashboardStore);
+    const removedWidget = store.dashboard()!.widgets[1];
+
+    store.removeWidget(removedWidget.id);
+
+    expect(store.dashboard()!.widgets).not.toContain(removedWidget);
+    expect(store.canUndoRemoval()).toBeTrue();
+    expect(
+      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!).dashboard
+        .widgets,
+    ).not.toContain(removedWidget);
+
+    store.undoWidgetRemoval();
+
+    expect(store.dashboard()!.widgets[1]).toEqual(removedWidget);
+    expect(store.canUndoRemoval()).toBeFalse();
+    expect(
+      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!).dashboard
+        .widgets[1],
+    ).toEqual(removedWidget);
+  });
+
+  it('expires a pending Widget removal without restoring it', fakeAsync(() => {
+    const store = TestBed.inject(DashboardStore);
+    const removedWidget = store.dashboard()!.widgets[0];
+
+    store.removeWidget(removedWidget.id);
+    tick(5_000);
+
+    expect(store.canUndoRemoval()).toBeFalse();
+    store.undoWidgetRemoval();
+    expect(store.dashboard()!.widgets).not.toContain(removedWidget);
+  }));
 
   it('requires an explicit reset before replacing unusable saved data', () => {
     storage.setItem('configurable-dashboard.snapshot', 'invalid');

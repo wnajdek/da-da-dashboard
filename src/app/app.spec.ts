@@ -88,6 +88,51 @@ describe('App', () => {
     ).toBe(6);
   });
 
+  it('removes a Widget Instance and restores it with undo', () => {
+    const storage = new MemoryStorage();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+      ],
+    });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (
+      compiled.querySelector(
+        '[data-testid="remove-Team notes"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(compiled.textContent).not.toContain('Team notes');
+    expect(
+      compiled.querySelector('[data-testid="undo-removal"]'),
+    ).not.toBeNull();
+    expect(
+      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!).dashboard
+        .widgets,
+    ).toHaveSize(2);
+
+    (
+      compiled.querySelector(
+        '[data-testid="undo-removal"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain('Team notes');
+    expect(compiled.querySelectorAll('.widget-card')).toHaveSize(3);
+    expect(
+      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!).dashboard
+        .widgets,
+    ).toHaveSize(3);
+  });
+
   it('edits a selected Notes Widget Instance and restores it after reload', () => {
     const storage = new MemoryStorage();
     TestBed.resetTestingModule();
