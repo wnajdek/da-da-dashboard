@@ -1,8 +1,16 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DASHBOARD_STORAGE } from './dashboard/dashboard-persistence.service';
 import { MemoryStorage } from './testing/memory-storage';
 import { App } from './app';
+
+async function waitForChartRender(
+  fixture: ComponentFixture<App>,
+): Promise<void> {
+  await fixture.whenStable();
+  await new Promise<void>((resolve) => window.setTimeout(resolve));
+  fixture.detectChanges();
+}
 
 describe('App', () => {
   beforeEach(async () => {
@@ -30,11 +38,27 @@ describe('App', () => {
     expect(compiled.textContent).toContain('Monthly revenue');
     expect(compiled.textContent).toContain('$124,500');
     expect(compiled.textContent).toContain('Revenue trend');
-    expect(compiled.textContent).toContain('Jan–Apr · steady growth');
+    expect(
+      compiled
+        .querySelector('[data-testid="time-series-chart"]')
+        ?.getAttribute('aria-label'),
+    ).toBe('Revenue trend chart, January to April: $94k, $101k, $109k, $117k');
     expect(compiled.textContent).toContain('Team notes');
     expect(compiled.textContent).toContain(
       'Review monthly progress with the team on Friday.',
     );
+  });
+
+  it('renders the Time-Series Widget as an ECharts canvas', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await waitForChartRender(fixture);
+
+    expect(
+      fixture.nativeElement.querySelector(
+        '[data-testid="time-series-chart"] canvas',
+      ),
+    ).not.toBeNull();
   });
 
   it('adds the chosen built-in Widget Instance and persists it', () => {
@@ -133,7 +157,7 @@ describe('App', () => {
     ).toHaveSize(3);
   });
 
-  it('refreshes the visible KPI and Time-Series Widget data', () => {
+  it('refreshes the visible KPI and Time-Series Widget data', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -158,6 +182,7 @@ describe('App', () => {
       ) as HTMLButtonElement
     ).click();
     fixture.detectChanges();
+    await waitForChartRender(fixture);
 
     expect(compiled.textContent).toContain('$127,000');
     expect([...compiled.querySelectorAll('.kpi-value')]).toHaveSize(2);
@@ -166,12 +191,19 @@ describe('App', () => {
         value.textContent?.includes('$127,000'),
       ),
     ).toBeTrue();
-    expect([...compiled.querySelectorAll('.trend')]).toHaveSize(2);
+    expect([
+      ...compiled.querySelectorAll('[data-testid="time-series-chart"]'),
+    ]).toHaveSize(2);
     expect(
-      [...compiled.querySelectorAll('.trend')].every(
-        (trend) =>
-          trend.getAttribute('aria-label') ===
-          'Revenue trend: $96k, $103k, $111k, $119k',
+      [...compiled.querySelectorAll('[data-testid="time-series-chart"]')].every(
+        (chart) =>
+          chart.getAttribute('aria-label') ===
+          'Revenue trend chart, January to April: $96k, $103k, $111k, $119k',
+      ),
+    ).toBeTrue();
+    expect(
+      [...compiled.querySelectorAll('[data-testid="time-series-chart"]')].every(
+        (chart) => chart.querySelector('canvas') !== null,
       ),
     ).toBeTrue();
   });

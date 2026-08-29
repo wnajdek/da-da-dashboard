@@ -27,7 +27,8 @@ h2 {
   margin: 1.5rem 0 0.25rem;
 }
 
-.widget-caption, .notes-body {
+.widget-caption,
+.notes-body {
   color: #526079;
   margin: 0;
 }
@@ -36,17 +37,8 @@ h2 {
   line-height: 1.5;
 }
 
-.trend {
-  align-items: end;
-  display: flex;
-  gap: 0.55rem;
-  height: 5rem;
-  margin: 1.25rem 0;
-}
-
-.trend span {
-  background: #0b8a9b;
-  border-radius: 0.2rem 0.2rem 0 0;
-  display: block;
-  flex: 1;
+.time-series-chart {
+  height: 8rem;
+  margin-top: 1rem;
+  width: 100%;
 }
