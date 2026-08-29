@@ -2,11 +2,12 @@ import { Component, inject } from '@angular/core';
 import { NgComponentOutlet } from '@angular/common';
 import { WidgetContext, WidgetInstance, WidgetType } from './dashboard.models';
 import { DashboardStore } from './dashboard.store';
+import { WidgetConfigurationEditorComponent } from './widget-configuration-editor.component';
 import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
 
 @Component({
   selector: 'app-dashboard-shell',
-  imports: [NgComponentOutlet],
+  imports: [NgComponentOutlet, WidgetConfigurationEditorComponent],
   template: `
     <main class="dashboard">
       @if (store.recoveryMessage(); as recoveryMessage) {
@@ -44,12 +45,32 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
 
         <section class="widget-grid" aria-label="Dashboard widgets">
           @for (widget of dashboard.widgets; track widget.id) {
-            <ng-container
-              [ngComponentOutlet]="widgetRegistry[widget.type]"
-              [ngComponentOutletInputs]="{ context: widgetContext(widget) }"
-            />
+            <section class="widget-instance">
+              <ng-container
+                [ngComponentOutlet]="widgetRegistry[widget.type]"
+                [ngComponentOutletInputs]="{ context: widgetContext(widget) }"
+              />
+              <button
+                type="button"
+                class="edit-widget"
+                [attr.data-testid]="'edit-' + widget.configuration.title"
+                (click)="store.selectWidget(widget.id)"
+              >
+                Edit {{ widget.configuration.title }}
+              </button>
+            </section>
           }
         </section>
+
+        @if (store.selectedWidget(); as selectedWidget) {
+          <app-widget-configuration-editor
+            [widget]="selectedWidget"
+            (configurationSaved)="
+              store.updateWidgetConfiguration(selectedWidget.id, $event)
+            "
+            (closed)="store.clearWidgetSelection()"
+          />
+        }
       }
     </main>
   `,

@@ -79,6 +79,17 @@ button {
   margin-top: 2rem;
 }
 
+.widget-instance {
+  position: relative;
+}
+
+.edit-widget {
+  background: #fff;
+  border: 1px solid #9aa6ba;
+  color: #172033;
+  margin-top: 0.5rem;
+}
+
 @media (max-width: 48rem) {
   .widget-grid {
     grid-template-columns: 1fr;

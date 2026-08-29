@@ -88,6 +88,135 @@ describe('App', () => {
     ).toBe(6);
   });
 
+  it('edits a selected Notes Widget Instance and restores it after reload', () => {
+    const storage = new MemoryStorage();
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+      ],
+    });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (
+      compiled.querySelector(
+        '[data-testid="edit-Team notes"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    const title = compiled.querySelector('#notes-title') as HTMLInputElement;
+    title.value = 'Friday plan';
+    title.dispatchEvent(new Event('input'));
+    (
+      compiled.querySelector('[data-testid="save-widget"]') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain('Friday plan');
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+      ],
+    });
+    const reloadedFixture = TestBed.createComponent(App);
+    reloadedFixture.detectChanges();
+
+    expect(reloadedFixture.nativeElement.textContent).toContain('Friday plan');
+  });
+
+  it('shows only the selected Widget Type fields in the editor', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (
+      compiled.querySelector(
+        '[data-testid="edit-Monthly revenue"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('#kpi-data-source')).not.toBeNull();
+    expect(compiled.querySelector('#kpi-display-format')).not.toBeNull();
+    expect(compiled.querySelector('#notes-body')).toBeNull();
+
+    (
+      compiled.querySelector('[aria-label="Close editor"]') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    (
+      compiled.querySelector(
+        '[data-testid="edit-Revenue trend"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('#time-series-data-source')).not.toBeNull();
+    expect(compiled.querySelector('#kpi-display-format')).toBeNull();
+    expect(compiled.querySelector('#notes-body')).toBeNull();
+
+    (
+      compiled.querySelector('[aria-label="Close editor"]') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    (
+      compiled.querySelector(
+        '[data-testid="edit-Team notes"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    expect(compiled.querySelector('#notes-body')).not.toBeNull();
+    expect(compiled.querySelector('#notes-title')).not.toBeNull();
+    expect(compiled.querySelector('#kpi-data-source')).toBeNull();
+  });
+
+  it('shows validation errors and keeps invalid Widget Configuration out of the Dashboard', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    (
+      compiled.querySelector(
+        '[data-testid="edit-Team notes"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+    const title = compiled.querySelector('#notes-title') as HTMLInputElement;
+    title.value = '';
+    title.dispatchEvent(new Event('input'));
+    (
+      compiled.querySelector('[data-testid="save-widget"]') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain(
+      'A title of up to 60 characters is required.',
+    );
+    expect(compiled.querySelectorAll('.widget-card')[2].textContent).toContain(
+      'Team notes',
+    );
+
+    title.value = 'Team notes';
+    title.dispatchEvent(new Event('input'));
+    const body = compiled.querySelector('#notes-body') as HTMLTextAreaElement;
+    body.value = 'x'.repeat(1_001);
+    body.dispatchEvent(new Event('input'));
+    (
+      compiled.querySelector('[data-testid="save-widget"]') as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(compiled.textContent).toContain(
+      'Notes can contain up to 1,000 characters.',
+    );
+  });
+
   it('shows recovery and lets the user explicitly reset invalid saved data', () => {
     TestBed.resetTestingModule();
     const storage = new MemoryStorage();

@@ -43,6 +43,20 @@ export interface NotesWidgetInstance extends WidgetInstanceBase {
 export type WidgetInstance =
   KpiWidgetInstance | TimeSeriesWidgetInstance | NotesWidgetInstance;
 
+export type WidgetConfigurationUpdate =
+  | {
+      readonly type: 'kpi';
+      readonly configuration: KpiWidgetInstance['configuration'];
+    }
+  | {
+      readonly type: 'time-series';
+      readonly configuration: TimeSeriesWidgetInstance['configuration'];
+    }
+  | {
+      readonly type: 'notes';
+      readonly configuration: NotesWidgetInstance['configuration'];
+    };
+
 export interface Dashboard {
   readonly id: string;
   readonly title: string;

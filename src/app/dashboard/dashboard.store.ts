@@ -1,5 +1,10 @@
-import { Injectable, Signal, signal } from '@angular/core';
-import { Dashboard, WidgetInstance, WidgetType } from './dashboard.models';
+import { computed, Injectable, Signal, signal } from '@angular/core';
+import {
+  Dashboard,
+  WidgetConfigurationUpdate,
+  WidgetInstance,
+  WidgetType,
+} from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
 
@@ -7,10 +12,20 @@ import { createSeedDashboard } from './dashboard.seed';
 export class DashboardStore {
   readonly #dashboard = signal<Dashboard | null>(null);
   readonly #recoveryMessage = signal<string | null>(null);
+  readonly #selectedWidgetId = signal<string | null>(null);
 
   readonly dashboard: Signal<Dashboard | null> = this.#dashboard.asReadonly();
   readonly recoveryMessage: Signal<string | null> =
     this.#recoveryMessage.asReadonly();
+  readonly selectedWidget = computed(() => {
+    const dashboard = this.#dashboard();
+    const selectedWidgetId = this.#selectedWidgetId();
+
+    return (
+      dashboard?.widgets.find((widget) => widget.id === selectedWidgetId) ??
+      null
+    );
+  });
 
   constructor(private readonly persistence: DashboardPersistenceService) {
     const result = this.persistence.load();
@@ -49,6 +64,39 @@ export class DashboardStore {
     }
   }
 
+  selectWidget(id: string): void {
+    if (this.#dashboard()?.widgets.some((widget) => widget.id === id)) {
+      this.#selectedWidgetId.set(id);
+    }
+  }
+
+  clearWidgetSelection(): void {
+    this.#selectedWidgetId.set(null);
+  }
+
+  updateWidgetConfiguration(
+    id: string,
+    update: WidgetConfigurationUpdate,
+  ): void {
+    const dashboard = this.#dashboard();
+
+    if (dashboard === null) {
+      return;
+    }
+
+    const updatedDashboard: Dashboard = {
+      ...dashboard,
+      widgets: dashboard.widgets.map((widget) =>
+        widget.id === id ? updateWidgetConfiguration(widget, update) : widget,
+      ),
+    };
+
+    if (this.persistence.save(updatedDashboard)) {
+      this.#dashboard.set(updatedDashboard);
+      this.#selectedWidgetId.set(null);
+    }
+  }
+
   #loadSeedDashboard(): void {
     const dashboard = createSeedDashboard();
 
@@ -60,6 +108,26 @@ export class DashboardStore {
 
     this.#dashboard.set(dashboard);
     this.#recoveryMessage.set(null);
+  }
+}
+
+function updateWidgetConfiguration(
+  widget: WidgetInstance,
+  update: WidgetConfigurationUpdate,
+): WidgetInstance {
+  switch (widget.type) {
+    case 'kpi':
+      return update.type === 'kpi'
+        ? { ...widget, configuration: update.configuration }
+        : widget;
+    case 'time-series':
+      return update.type === 'time-series'
+        ? { ...widget, configuration: update.configuration }
+        : widget;
+    case 'notes':
+      return update.type === 'notes'
+        ? { ...widget, configuration: update.configuration }
+        : widget;
   }
 }
 
