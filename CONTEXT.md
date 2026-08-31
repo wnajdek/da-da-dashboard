@@ -7,12 +7,41 @@ title, and ordered Widget Instances.
 
 ## Widget Instance
 
-One configured, uniquely identified occurrence of a built-in Widget Type in a
+One configured, uniquely identified occurrence of a Widget Type in a
 Dashboard. It owns its portable Grid Layout and Widget Configuration.
 
 ## Widget Type
 
-The supported kind of a Widget Instance: `kpi`, `time-series`, or `notes`.
+A stable identifier for the kind of a Widget Instance. The currently supported
+types are `kpi`, `time-series`, and `notes`; a persisted type can also be
+unavailable to the running application.
+
+## Widget Registry
+
+The application-startup composition of built-in Widget Type definitions. It is
+fixed for the browser session; adding a Widget Type requires a source change,
+application build, and deployment. A definition may load its implementation
+lazily.
+
+## Widget Definition
+
+The registered, Widget-Type-specific description used by the Dashboard host. It
+owns display metadata, default Widget Configuration, preferred Grid Layout size,
+and the lazy implementation loader. It does not own Widget Instance identity,
+placement, order, or persistence.
+
+## Widget Data Gateway
+
+The narrow application-provided contract through which a Widget implementation
+obtains its display data and observes refreshes. It is distinct from the
+Dashboard store and does not expose Dashboard management operations.
+
+## Unavailable Widget
+
+A persisted Widget Instance whose type cannot currently be resolved to a
+renderable implementation. It remains part of its Dashboard and is rendered as
+an isolated unavailable-widget card so that it cannot prevent the remaining
+Widget Instances from being used.
 
 ## Widget Configuration
 
