@@ -1,14 +1,15 @@
+import { InjectionToken } from '@angular/core';
 import type { Type } from '@angular/core';
 import type {
+  BuiltInWidgetType,
   GridLayout,
   WidgetInstance,
-  WidgetType,
 } from './dashboard.models';
 
 export type WidgetImplementationLoader = () => Promise<Type<unknown>>;
 
 export type WidgetDefinition = {
-  readonly [T in WidgetType]: {
+  readonly [T in BuiltInWidgetType]: {
     readonly type: T;
     readonly displayName: string;
     readonly defaultConfiguration: Extract<
@@ -18,7 +19,11 @@ export type WidgetDefinition = {
     readonly preferredLayout: Pick<GridLayout, 'w' | 'h'>;
     readonly loadImplementation: WidgetImplementationLoader;
   };
-}[WidgetType];
+}[BuiltInWidgetType];
+
+export type WidgetRegistry = Readonly<{
+  readonly [T in BuiltInWidgetType]: Extract<WidgetDefinition, { type: T }>;
+}>;
 
 const definitions = Object.freeze({
   kpi: Object.freeze({
@@ -61,9 +66,13 @@ const definitions = Object.freeze({
         ({ NotesWidgetComponent }) => NotesWidgetComponent,
       ),
   }),
-} satisfies Record<WidgetType, WidgetDefinition>);
+} satisfies WidgetRegistry);
 
-export const BUILT_IN_WIDGET_REGISTRY = definitions;
+export const BUILT_IN_WIDGET_REGISTRY: WidgetRegistry = definitions;
+export const WIDGET_REGISTRY = new InjectionToken<WidgetRegistry>(
+  'Widget registry',
+  { providedIn: 'root', factory: () => BUILT_IN_WIDGET_REGISTRY },
+);
 export const BUILT_IN_WIDGET_TYPES = Object.freeze(
   Object.values(BUILT_IN_WIDGET_REGISTRY),
 );

@@ -1,14 +1,27 @@
 import { NgComponentOutlet } from '@angular/common';
-import { Component, effect, input, signal } from '@angular/core';
+import {
+  Component,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import type { Type } from '@angular/core';
-import type { WidgetConfiguration, WidgetType } from './dashboard.models';
-import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
+import type {
+  UnavailableWidgetConfiguration,
+  WidgetConfiguration,
+  WidgetType,
+} from './dashboard.models';
+import { isBuiltInWidgetType } from './dashboard.models';
+import { UnavailableWidgetCardComponent } from './unavailable-widget-card.component';
+import { WIDGET_REGISTRY } from './widget-registry';
 
-type ResolutionState = 'loading' | 'resolved';
+type ResolutionState = 'loading' | 'resolved' | 'unavailable';
 
 @Component({
   selector: 'app-widget-renderer',
-  imports: [NgComponentOutlet],
+  imports: [NgComponentOutlet, UnavailableWidgetCardComponent],
   template: `
     @if (resolutionState() === 'loading') {
       <article
@@ -19,6 +32,12 @@ type ResolutionState = 'loading' | 'resolved';
         <p class="widget-kind">Widget</p>
         <p>Loading {{ configuration().title }}…</p>
       </article>
+    } @else if (resolutionState() === 'unavailable') {
+      <app-unavailable-widget-card
+        [widgetType]="widgetType()"
+        [configuration]="configuration()"
+        (removed)="unavailable.emit()"
+      />
     } @else if (resolvedComponent(); as component) {
       <ng-container
         [ngComponentOutlet]="component"
@@ -30,10 +49,15 @@ type ResolutionState = 'loading' | 'resolved';
 })
 export class WidgetRendererComponent {
   readonly widgetType = input.required<WidgetType>();
-  readonly configuration = input.required<WidgetConfiguration>();
+  readonly configuration = input.required<
+    WidgetConfiguration | UnavailableWidgetConfiguration
+  >();
+  readonly resolved = output<void>();
+  readonly unavailable = output<void>();
 
   protected readonly resolutionState = signal<ResolutionState>('loading');
   protected readonly resolvedComponent = signal<Type<unknown> | null>(null);
+  readonly #registry = inject(WIDGET_REGISTRY);
 
   constructor() {
     effect(() => {
@@ -46,14 +70,30 @@ export class WidgetRendererComponent {
   }
 
   async #loadImplementation(widgetType: WidgetType): Promise<void> {
-    const component =
-      await BUILT_IN_WIDGET_REGISTRY[widgetType].loadImplementation();
-
-    if (this.widgetType() !== widgetType) {
+    if (!isBuiltInWidgetType(widgetType)) {
+      this.#setUnavailableIfCurrent(widgetType);
       return;
     }
 
-    this.resolvedComponent.set(component);
-    this.resolutionState.set('resolved');
+    try {
+      const component = await this.#registry[widgetType].loadImplementation();
+
+      if (this.widgetType() !== widgetType) {
+        return;
+      }
+
+      this.resolvedComponent.set(component);
+      this.resolutionState.set('resolved');
+      this.resolved.emit();
+    } catch {
+      this.#setUnavailableIfCurrent(widgetType);
+    }
+  }
+
+  #setUnavailableIfCurrent(widgetType: WidgetType): void {
+    if (this.widgetType() === widgetType) {
+      this.resolvedComponent.set(null);
+      this.resolutionState.set('unavailable');
+    }
   }
 }

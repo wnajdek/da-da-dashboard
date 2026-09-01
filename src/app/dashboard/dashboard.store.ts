@@ -1,10 +1,11 @@
 import { computed, Injectable, Signal, signal } from '@angular/core';
 import {
   Dashboard,
+  BuiltInWidgetType,
   WidgetConfigurationUpdate,
   WidgetInstance,
   WidgetLayoutChange,
-  WidgetType,
+  isKnownWidgetInstance,
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
@@ -32,11 +33,13 @@ export class DashboardStore {
   readonly selectedWidget = computed(() => {
     const dashboard = this.#dashboard();
     const selectedWidgetId = this.#selectedWidgetId();
-
-    return (
-      dashboard?.widgets.find((widget) => widget.id === selectedWidgetId) ??
-      null
+    const selectedWidget = dashboard?.widgets.find(
+      (widget) => widget.id === selectedWidgetId,
     );
+
+    return selectedWidget !== undefined && isKnownWidgetInstance(selectedWidget)
+      ? selectedWidget
+      : null;
   });
   readonly canUndoRemoval = computed(
     () => this.#pendingWidgetRemoval() !== null,
@@ -65,7 +68,7 @@ export class DashboardStore {
     this.#loadSeedDashboard();
   }
 
-  addWidget(type: WidgetType): void {
+  addWidget(type: BuiltInWidgetType): void {
     const dashboard = this.#dashboard();
 
     if (dashboard === null) {
@@ -229,6 +232,10 @@ function updateWidgetConfiguration(
   widget: WidgetInstance,
   update: WidgetConfigurationUpdate,
 ): WidgetInstance {
+  if (!isKnownWidgetInstance(widget)) {
+    return widget;
+  }
+
   switch (widget.type) {
     case 'kpi':
       return update.type === 'kpi'

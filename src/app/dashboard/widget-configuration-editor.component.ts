@@ -9,7 +9,7 @@ import {
   KpiDataSourceKey,
   TimeSeriesDataSourceKey,
   WidgetConfigurationUpdate,
-  WidgetInstance,
+  KnownWidgetInstance,
 } from './dashboard.models';
 
 const TITLE_MAX_LENGTH = 60;
@@ -122,7 +122,7 @@ const NOTES_BODY_MAX_LENGTH = 1_000;
   styleUrl: './widget-configuration-editor.component.scss',
 })
 export class WidgetConfigurationEditorComponent {
-  readonly widget = input.required<WidgetInstance>();
+  readonly widget = input.required<KnownWidgetInstance>();
   readonly configurationSaved = output<WidgetConfigurationUpdate>();
   readonly closed = output<void>();
 
@@ -210,7 +210,7 @@ export class WidgetConfigurationEditorComponent {
     });
   }
 
-  private resetForm(widget: WidgetInstance): void {
+  private resetForm(widget: KnownWidgetInstance): void {
     switch (widget.type) {
       case 'kpi':
         this.kpiForm.reset(widget.configuration);

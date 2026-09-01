@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { WidgetType } from './dashboard.models';
+import { BuiltInWidgetType } from './dashboard.models';
 import { DashboardStore } from './dashboard.store';
 import { WidgetConfigurationEditorComponent } from './widget-configuration-editor.component';
 import { DashboardGridComponent } from './dashboard-grid.component';
@@ -89,7 +89,7 @@ import { BUILT_IN_WIDGET_TYPES } from './widget-registry';
 export class DashboardShellComponent {
   protected readonly store = inject(DashboardStore);
   protected readonly widgetTypes = BUILT_IN_WIDGET_TYPES;
-  protected selectedWidgetType: WidgetType = 'kpi';
+  protected selectedWidgetType: BuiltInWidgetType = 'kpi';
 
   protected selectWidgetType(event: Event): void {
     const type = (event.target as HTMLSelectElement).value;

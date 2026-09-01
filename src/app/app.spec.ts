@@ -1,6 +1,11 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DASHBOARD_STORAGE } from './dashboard/dashboard-persistence.service';
+import {
+  BUILT_IN_WIDGET_REGISTRY,
+  WIDGET_REGISTRY,
+} from './dashboard/widget-registry';
+import { createSeedDashboard } from './dashboard/dashboard.seed';
 import { MemoryStorage } from './testing/memory-storage';
 import { App } from './app';
 
@@ -503,5 +508,116 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('h1')?.textContent).toContain(
       'My dashboard',
     );
+  });
+
+  it('contains an unavailable persisted Widget and removes only that instance', async () => {
+    const storage = new MemoryStorage();
+    const dashboard = createSeedDashboard();
+    storage.setItem(
+      'configurable-dashboard.snapshot',
+      JSON.stringify({
+        schemaVersion: 1,
+        dashboard: {
+          ...dashboard,
+          widgets: [
+            {
+              id: 'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11',
+              type: 'weather',
+              layout: { x: 0, y: 3, w: 4, h: 2 },
+              configuration: {
+                title: 'Local weather',
+                location: 'Warsaw',
+              },
+            },
+            ...dashboard.widgets,
+          ],
+        },
+      }),
+    );
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+      ],
+    });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await waitForLazyRender(fixture);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelectorAll('[data-testid="unavailable-widget"]'),
+    ).toHaveSize(1);
+    expect(compiled.textContent).toContain('Local weather');
+    expect(compiled.textContent).toContain('weather');
+    expect(
+      compiled.querySelector('[data-testid="edit-Local weather"]'),
+    ).toBeNull();
+
+    (
+      compiled.querySelector(
+        '[data-testid="remove-unavailable-widget"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(
+      compiled.querySelector('[data-testid="unavailable-widget"]'),
+    ).toBeNull();
+    expect(
+      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!).dashboard
+        .widgets,
+    ).toHaveSize(3);
+    expect(compiled.textContent).toContain('Monthly revenue');
+  });
+
+  it('contains a registered Widget when its lazy implementation fails', async () => {
+    const storage = new MemoryStorage();
+    const registry = {
+      ...BUILT_IN_WIDGET_REGISTRY,
+      kpi: {
+        ...BUILT_IN_WIDGET_REGISTRY.kpi,
+        loadImplementation: () =>
+          Promise.reject(new Error('KPI chunk unavailable')),
+      },
+    };
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+        { provide: WIDGET_REGISTRY, useValue: registry },
+      ],
+    });
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await waitForLazyRender(fixture);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(
+      compiled.querySelectorAll('[data-testid="unavailable-widget"]'),
+    ).toHaveSize(1);
+    expect(
+      compiled.querySelector('[data-testid="unavailable-widget"]')?.textContent,
+    ).toContain('kpi');
+    expect(
+      compiled.querySelector('[data-testid="edit-Monthly revenue"]'),
+    ).toBeNull();
+
+    (
+      compiled.querySelector(
+        '[data-testid="remove-unavailable-widget"]',
+      ) as HTMLButtonElement
+    ).click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelectorAll('.grid-stack-item')).toHaveSize(2);
+    expect(
+      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!).dashboard
+        .widgets,
+    ).toHaveSize(2);
   });
 });

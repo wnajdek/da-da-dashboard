@@ -117,7 +117,7 @@ function isWidgetInstance(value: unknown): value is WidgetInstance {
         typeof configuration['body'] === 'string'
       );
     default:
-      return false;
+      return typeof value['type'] === 'string' && value['type'].length > 0;
   }
 }
 
