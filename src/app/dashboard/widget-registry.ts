@@ -1,8 +1,11 @@
-import { Type } from '@angular/core';
-import { KpiWidgetComponent } from './kpi-widget.component';
-import { NotesWidgetComponent } from './notes-widget.component';
-import { TimeSeriesWidgetComponent } from './time-series-widget.component';
-import { GridLayout, WidgetInstance, WidgetType } from './dashboard.models';
+import type { Type } from '@angular/core';
+import type {
+  GridLayout,
+  WidgetInstance,
+  WidgetType,
+} from './dashboard.models';
+
+export type WidgetImplementationLoader = () => Promise<Type<unknown>>;
 
 export type WidgetDefinition = {
   readonly [T in WidgetType]: {
@@ -13,7 +16,7 @@ export type WidgetDefinition = {
       { type: T }
     >['configuration'];
     readonly preferredLayout: Pick<GridLayout, 'w' | 'h'>;
-    readonly component: Type<unknown>;
+    readonly loadImplementation: WidgetImplementationLoader;
   };
 }[WidgetType];
 
@@ -27,7 +30,10 @@ const definitions = Object.freeze({
       displayFormat: 'currency',
     }),
     preferredLayout: Object.freeze({ w: 3, h: 2 }),
-    component: KpiWidgetComponent,
+    loadImplementation: () =>
+      import('./kpi-widget.component').then(
+        ({ KpiWidgetComponent }) => KpiWidgetComponent,
+      ),
   }),
   'time-series': Object.freeze({
     type: 'time-series',
@@ -37,7 +43,10 @@ const definitions = Object.freeze({
       dataSource: 'monthly-revenue-trend',
     }),
     preferredLayout: Object.freeze({ w: 3, h: 2 }),
-    component: TimeSeriesWidgetComponent,
+    loadImplementation: () =>
+      import('./time-series-widget.component').then(
+        ({ TimeSeriesWidgetComponent }) => TimeSeriesWidgetComponent,
+      ),
   }),
   notes: Object.freeze({
     type: 'notes',
@@ -47,7 +56,10 @@ const definitions = Object.freeze({
       body: 'Add your notes here.',
     }),
     preferredLayout: Object.freeze({ w: 3, h: 2 }),
-    component: NotesWidgetComponent,
+    loadImplementation: () =>
+      import('./notes-widget.component').then(
+        ({ NotesWidgetComponent }) => NotesWidgetComponent,
+      ),
   }),
 } satisfies Record<WidgetType, WidgetDefinition>);
 

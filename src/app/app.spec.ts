@@ -4,10 +4,18 @@ import { DASHBOARD_STORAGE } from './dashboard/dashboard-persistence.service';
 import { MemoryStorage } from './testing/memory-storage';
 import { App } from './app';
 
-async function waitForChartRender(
+async function waitForLazyRender(
   fixture: ComponentFixture<App>,
 ): Promise<void> {
   await fixture.whenStable();
+  await new Promise<void>((resolve) => window.setTimeout(resolve));
+  fixture.detectChanges();
+}
+
+async function waitForChartRender(
+  fixture: ComponentFixture<App>,
+): Promise<void> {
+  await waitForLazyRender(fixture);
   await new Promise<void>((resolve) => window.setTimeout(resolve));
   fixture.detectChanges();
 }
@@ -29,9 +37,10 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  it('shows the seeded dashboard with each supported widget type', () => {
+  it('shows the seeded dashboard with each supported widget type', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelector('h1')?.textContent).toContain('My dashboard');
@@ -49,6 +58,15 @@ describe('App', () => {
     );
   });
 
+  it('shows a loading state while Widget implementations are being resolved', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelectorAll('[data-testid="widget-loading"]'),
+    ).toHaveSize(3);
+  });
+
   it('renders the Time-Series Widget as an ECharts canvas', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
@@ -61,9 +79,10 @@ describe('App', () => {
     ).not.toBeNull();
   });
 
-  it('gives every Widget Instance a dedicated drag handle outside its content', () => {
+  it('gives every Widget Instance a dedicated drag handle outside its content', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
     const widgets = [...compiled.querySelectorAll('.grid-stack-item')];
 
@@ -77,7 +96,7 @@ describe('App', () => {
     ).toBeTrue();
   });
 
-  it('presents Widgets in one column on a narrow screen without changing their desktop Grid Layout', () => {
+  it('presents Widgets in one column on a narrow screen without changing their desktop Grid Layout', async () => {
     const storage = new MemoryStorage();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -89,6 +108,7 @@ describe('App', () => {
     });
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
     const originalInnerWidth = Object.getOwnPropertyDescriptor(
       window,
@@ -140,7 +160,7 @@ describe('App', () => {
     }
   });
 
-  it('adds the chosen built-in Widget Instance and persists it', () => {
+  it('adds the chosen built-in Widget Instance and persists it', async () => {
     const storage = new MemoryStorage();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -152,6 +172,7 @@ describe('App', () => {
     });
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
     const widgetTypeSelect = compiled.querySelector(
       '#widget-type',
@@ -173,6 +194,7 @@ describe('App', () => {
       ).click();
       fixture.detectChanges();
     }
+    await waitForLazyRender(fixture);
 
     expect(compiled.querySelectorAll('.widget-card').length).toBe(6);
     expect(compiled.textContent).toContain('New note');
@@ -224,7 +246,7 @@ describe('App', () => {
     ).toBe(6);
   });
 
-  it('removes a Widget Instance and restores it with undo', () => {
+  it('removes a Widget Instance and restores it with undo', async () => {
     const storage = new MemoryStorage();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -236,6 +258,7 @@ describe('App', () => {
     });
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
 
     (
@@ -272,6 +295,7 @@ describe('App', () => {
   it('refreshes the visible KPI and Time-Series Widget data', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
     const widgetTypeSelect = compiled.querySelector(
       '#widget-type',
@@ -320,7 +344,7 @@ describe('App', () => {
     ).toBeTrue();
   });
 
-  it('edits a selected Notes Widget Instance and restores it after reload', () => {
+  it('edits a selected Notes Widget Instance and restores it after reload', async () => {
     const storage = new MemoryStorage();
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
@@ -332,6 +356,7 @@ describe('App', () => {
     });
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
 
     (
@@ -360,13 +385,15 @@ describe('App', () => {
     });
     const reloadedFixture = TestBed.createComponent(App);
     reloadedFixture.detectChanges();
+    await waitForLazyRender(reloadedFixture);
 
     expect(reloadedFixture.nativeElement.textContent).toContain('Friday plan');
   });
 
-  it('shows only the selected Widget Type fields in the editor', () => {
+  it('shows only the selected Widget Type fields in the editor', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
 
     (
@@ -408,9 +435,10 @@ describe('App', () => {
     expect(compiled.querySelector('#kpi-data-source')).toBeNull();
   });
 
-  it('shows validation errors and keeps invalid Widget Configuration out of the Dashboard', () => {
+  it('shows validation errors and keeps invalid Widget Configuration out of the Dashboard', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
+    await waitForLazyRender(fixture);
     const compiled = fixture.nativeElement as HTMLElement;
 
     (

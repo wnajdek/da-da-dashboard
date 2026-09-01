@@ -13,7 +13,6 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { NgComponentOutlet } from '@angular/common';
 import { GridItemHTMLElement, GridStack, GridStackNode } from 'gridstack';
 import {
   Dashboard,
@@ -22,13 +21,13 @@ import {
 } from './dashboard.models';
 import { DemoDataService } from './demo-data.service';
 import { GridStackLayoutAdapter } from './gridstack-layout.adapter';
-import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
 import { WidgetDataGateway } from './widget-data-gateway';
+import { WidgetRendererComponent } from './widget-renderer.component';
 
 @Component({
   selector: 'app-dashboard-grid',
   standalone: true,
-  imports: [NgComponentOutlet],
+  imports: [WidgetRendererComponent],
   providers: [{ provide: WidgetDataGateway, useExisting: DemoDataService }],
   template: `
     <section
@@ -49,11 +48,9 @@ import { WidgetDataGateway } from './widget-data-gateway';
         >
           <div class="grid-stack-item-content">
             <div class="widget-content">
-              <ng-container
-                [ngComponentOutlet]="widgetRegistry[widget.type].component"
-                [ngComponentOutletInputs]="{
-                  configuration: widget.configuration,
-                }"
+              <app-widget-renderer
+                [widgetType]="widget.type"
+                [configuration]="widget.configuration"
               />
             </div>
             <div class="widget-controls">
@@ -93,7 +90,6 @@ export class DashboardGridComponent implements AfterViewInit {
   readonly layoutCommitted = output<readonly WidgetLayoutChange[]>();
   readonly widgetSelected = output<string>();
   readonly widgetRemoved = output<string>();
-  protected readonly widgetRegistry = BUILT_IN_WIDGET_REGISTRY;
   protected readonly narrowScreen = signal(window.innerWidth <= 767);
 
   private readonly gridElement =
