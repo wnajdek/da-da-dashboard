@@ -133,7 +133,7 @@ describe('DashboardStore', () => {
 
     store.refreshDemoData();
 
-    expect(demoData.kpiValueFor('monthly-revenue')).toBe(127000);
+    expect(demoData.kpiValueFor('monthly-revenue')()).toBe(127000);
     expect(storage.getItem('configurable-dashboard.snapshot')).toBe(
       savedDashboard,
     );

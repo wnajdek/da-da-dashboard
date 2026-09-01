@@ -1,9 +1,9 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { EChartsCoreOption } from 'echarts/core';
 import { NgxEchartsDirective, provideEchartsCore } from 'ngx-echarts';
-import { DemoDataService } from './demo-data.service';
-import { TimeSeriesWidgetInstance, WidgetContext } from './dashboard.models';
+import { TimeSeriesWidgetConfiguration } from './dashboard.models';
 import { echarts } from './echarts.config';
+import { WidgetDataGateway } from './widget-data-gateway';
 
 @Component({
   selector: 'app-time-series-widget',
@@ -12,7 +12,7 @@ import { echarts } from './echarts.config';
   template: `
     <article class="widget-card">
       <p class="widget-kind">Time series</p>
-      <h2>{{ context().widget.configuration.title }}</h2>
+      <h2>{{ configuration().title }}</h2>
       <div
         echarts
         class="time-series-chart"
@@ -26,8 +26,8 @@ import { echarts } from './echarts.config';
   styleUrl: './widget-card.scss',
 })
 export class TimeSeriesWidgetComponent {
-  readonly context = input.required<WidgetContext<TimeSeriesWidgetInstance>>();
-  protected readonly demoData = inject(DemoDataService);
+  readonly configuration = input.required<TimeSeriesWidgetConfiguration>();
+  protected readonly dataGateway = inject(WidgetDataGateway);
   protected readonly chartOptions = computed<EChartsCoreOption>(() => {
     const values = this.values();
 
@@ -54,13 +54,13 @@ export class TimeSeriesWidgetComponent {
   });
 
   protected values(): readonly number[] {
-    return this.demoData.timeSeriesValuesFor(
-      this.context().widget.configuration.dataSource,
-    );
+    return this.dataGateway.timeSeriesValuesFor(
+      this.configuration().dataSource,
+    )();
   }
 
   protected chartSummary(): string {
-    return `${this.context().widget.configuration.title} chart, January to April: ${this.values()
+    return `${this.configuration().title} chart, January to April: ${this.values()
       .map((value) => `$${value / 1000}k`)
       .join(', ')}`;
   }

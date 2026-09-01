@@ -1,5 +1,6 @@
-import { Injectable, Signal, signal } from '@angular/core';
+import { computed, Injectable, Signal, signal } from '@angular/core';
 import { KpiDataSourceKey, TimeSeriesDataSourceKey } from './dashboard.models';
+import { WidgetDataGateway } from './widget-data-gateway';
 
 export interface DemoData {
   readonly 'monthly-revenue': number;
@@ -7,20 +8,32 @@ export interface DemoData {
 }
 
 @Injectable({ providedIn: 'root' })
-export class DemoDataService {
+export class DemoDataService extends WidgetDataGateway {
   readonly #data = signal<DemoData>({
     'monthly-revenue': 124500,
     'monthly-revenue-trend': [94000, 101000, 109000, 117000],
   });
 
-  readonly data: Signal<DemoData> = this.#data.asReadonly();
+  readonly #kpiValues: Record<KpiDataSourceKey, Signal<number>> = {
+    'monthly-revenue': computed(() => this.#data()['monthly-revenue']),
+  };
+  readonly #timeSeriesValues: Record<
+    TimeSeriesDataSourceKey,
+    Signal<readonly number[]>
+  > = {
+    'monthly-revenue-trend': computed(
+      () => this.#data()['monthly-revenue-trend'],
+    ),
+  };
 
-  kpiValueFor(source: KpiDataSourceKey): number {
-    return this.data()[source];
+  override kpiValueFor(source: KpiDataSourceKey): Signal<number> {
+    return this.#kpiValues[source];
   }
 
-  timeSeriesValuesFor(source: TimeSeriesDataSourceKey): readonly number[] {
-    return this.data()[source];
+  override timeSeriesValuesFor(
+    source: TimeSeriesDataSourceKey,
+  ): Signal<readonly number[]> {
+    return this.#timeSeriesValues[source];
   }
 
   refresh(): void {

@@ -14,6 +14,27 @@ export interface WidgetLayoutChange {
   readonly layout: GridLayout;
 }
 
+export interface KpiWidgetConfiguration {
+  readonly title: string;
+  readonly dataSource: KpiDataSourceKey;
+  readonly displayFormat: 'currency';
+}
+
+export interface TimeSeriesWidgetConfiguration {
+  readonly title: string;
+  readonly dataSource: TimeSeriesDataSourceKey;
+}
+
+export interface NotesWidgetConfiguration {
+  readonly title: string;
+  readonly body: string;
+}
+
+export type WidgetConfiguration =
+  | KpiWidgetConfiguration
+  | TimeSeriesWidgetConfiguration
+  | NotesWidgetConfiguration;
+
 interface WidgetInstanceBase {
   readonly id: string;
   readonly type: WidgetType;
@@ -22,27 +43,17 @@ interface WidgetInstanceBase {
 
 export interface KpiWidgetInstance extends WidgetInstanceBase {
   readonly type: 'kpi';
-  readonly configuration: {
-    readonly title: string;
-    readonly dataSource: KpiDataSourceKey;
-    readonly displayFormat: 'currency';
-  };
+  readonly configuration: KpiWidgetConfiguration;
 }
 
 export interface TimeSeriesWidgetInstance extends WidgetInstanceBase {
   readonly type: 'time-series';
-  readonly configuration: {
-    readonly title: string;
-    readonly dataSource: TimeSeriesDataSourceKey;
-  };
+  readonly configuration: TimeSeriesWidgetConfiguration;
 }
 
 export interface NotesWidgetInstance extends WidgetInstanceBase {
   readonly type: 'notes';
-  readonly configuration: {
-    readonly title: string;
-    readonly body: string;
-  };
+  readonly configuration: NotesWidgetConfiguration;
 }
 
 export type WidgetInstance =
@@ -51,23 +62,19 @@ export type WidgetInstance =
 export type WidgetConfigurationUpdate =
   | {
       readonly type: 'kpi';
-      readonly configuration: KpiWidgetInstance['configuration'];
+      readonly configuration: KpiWidgetConfiguration;
     }
   | {
       readonly type: 'time-series';
-      readonly configuration: TimeSeriesWidgetInstance['configuration'];
+      readonly configuration: TimeSeriesWidgetConfiguration;
     }
   | {
       readonly type: 'notes';
-      readonly configuration: NotesWidgetInstance['configuration'];
+      readonly configuration: NotesWidgetConfiguration;
     };
 
 export interface Dashboard {
   readonly id: string;
   readonly title: string;
   readonly widgets: readonly WidgetInstance[];
-}
-
-export interface WidgetContext<T extends WidgetInstance = WidgetInstance> {
-  readonly widget: T;
 }

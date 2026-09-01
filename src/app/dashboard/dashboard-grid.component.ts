@@ -17,17 +17,19 @@ import { NgComponentOutlet } from '@angular/common';
 import { GridItemHTMLElement, GridStack, GridStackNode } from 'gridstack';
 import {
   Dashboard,
-  WidgetContext,
   WidgetInstance,
   WidgetLayoutChange,
 } from './dashboard.models';
+import { DemoDataService } from './demo-data.service';
 import { GridStackLayoutAdapter } from './gridstack-layout.adapter';
 import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
+import { WidgetDataGateway } from './widget-data-gateway';
 
 @Component({
   selector: 'app-dashboard-grid',
   standalone: true,
   imports: [NgComponentOutlet],
+  providers: [{ provide: WidgetDataGateway, useExisting: DemoDataService }],
   template: `
     <section
       #grid
@@ -49,7 +51,9 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
             <div class="widget-content">
               <ng-container
                 [ngComponentOutlet]="widgetRegistry[widget.type].component"
-                [ngComponentOutletInputs]="{ context: widgetContext(widget) }"
+                [ngComponentOutletInputs]="{
+                  configuration: widget.configuration,
+                }"
               />
             </div>
             <div class="widget-controls">
@@ -193,10 +197,6 @@ export class DashboardGridComponent implements AfterViewInit {
     }
 
     this.#grid.enable();
-  }
-
-  protected widgetContext(widget: WidgetInstance): WidgetContext {
-    return { widget };
   }
 
   protected gridStackWidget(widget: WidgetInstance) {
