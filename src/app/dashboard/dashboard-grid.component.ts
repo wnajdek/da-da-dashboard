@@ -48,7 +48,7 @@ import { BUILT_IN_WIDGET_REGISTRY } from './widget-registry';
           <div class="grid-stack-item-content">
             <div class="widget-content">
               <ng-container
-                [ngComponentOutlet]="widgetRegistry[widget.type]"
+                [ngComponentOutlet]="widgetRegistry[widget.type].component"
                 [ngComponentOutletInputs]="{ context: widgetContext(widget) }"
               />
             </div>

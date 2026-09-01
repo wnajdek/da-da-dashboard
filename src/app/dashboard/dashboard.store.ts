@@ -9,6 +9,7 @@ import {
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
 import { DemoDataService } from './demo-data.service';
+import { BUILT_IN_WIDGET_REGISTRY, WidgetDefinition } from './widget-registry';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
 
@@ -73,7 +74,10 @@ export class DashboardStore {
 
     const updatedDashboard: Dashboard = {
       ...dashboard,
-      widgets: [...dashboard.widgets, createDefaultWidget(type, dashboard)],
+      widgets: [
+        ...dashboard.widgets,
+        createDefaultWidget(BUILT_IN_WIDGET_REGISTRY[type], dashboard),
+      ],
     };
 
     if (this.persistence.save(updatedDashboard)) {
@@ -242,7 +246,7 @@ function updateWidgetConfiguration(
 }
 
 function createDefaultWidget(
-  type: WidgetType,
+  definition: WidgetDefinition,
   dashboard: Dashboard,
 ): WidgetInstance {
   const layout = {
@@ -251,42 +255,13 @@ function createDefaultWidget(
       0,
       ...dashboard.widgets.map((widget) => widget.layout.y + widget.layout.h),
     ),
-    w: 3,
-    h: 2,
+    ...definition.preferredLayout,
   };
-  const id = crypto.randomUUID();
 
-  switch (type) {
-    case 'kpi':
-      return {
-        id,
-        type,
-        layout,
-        configuration: {
-          title: 'Monthly revenue',
-          dataSource: 'monthly-revenue',
-          displayFormat: 'currency',
-        },
-      };
-    case 'time-series':
-      return {
-        id,
-        type,
-        layout,
-        configuration: {
-          title: 'Revenue trend',
-          dataSource: 'monthly-revenue-trend',
-        },
-      };
-    case 'notes':
-      return {
-        id,
-        type,
-        layout,
-        configuration: {
-          title: 'New note',
-          body: 'Add your notes here.',
-        },
-      };
-  }
+  return {
+    id: crypto.randomUUID(),
+    type: definition.type,
+    layout,
+    configuration: definition.defaultConfiguration,
+  } as WidgetInstance;
 }

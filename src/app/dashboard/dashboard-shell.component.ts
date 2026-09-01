@@ -3,6 +3,7 @@ import { WidgetType } from './dashboard.models';
 import { DashboardStore } from './dashboard.store';
 import { WidgetConfigurationEditorComponent } from './widget-configuration-editor.component';
 import { DashboardGridComponent } from './dashboard-grid.component';
+import { BUILT_IN_WIDGET_TYPES } from './widget-registry';
 
 @Component({
   selector: 'app-dashboard-shell',
@@ -28,8 +29,10 @@ import { DashboardGridComponent } from './dashboard-grid.component';
           <div class="add-widget">
             <label for="widget-type">Add a widget</label>
             <select id="widget-type" (change)="selectWidgetType($event)">
-              @for (widgetType of widgetTypes; track widgetType) {
-                <option [value]="widgetType">{{ widgetType }}</option>
+              @for (widgetType of widgetTypes; track widgetType.type) {
+                <option [value]="widgetType.type">
+                  {{ widgetType.displayName }}
+                </option>
               }
             </select>
             <button
@@ -85,18 +88,18 @@ import { DashboardGridComponent } from './dashboard-grid.component';
 })
 export class DashboardShellComponent {
   protected readonly store = inject(DashboardStore);
-  protected readonly widgetTypes: readonly WidgetType[] = [
-    'kpi',
-    'time-series',
-    'notes',
-  ];
+  protected readonly widgetTypes = BUILT_IN_WIDGET_TYPES;
   protected selectedWidgetType: WidgetType = 'kpi';
 
   protected selectWidgetType(event: Event): void {
     const type = (event.target as HTMLSelectElement).value;
 
-    if (type === 'kpi' || type === 'time-series' || type === 'notes') {
-      this.selectedWidgetType = type;
+    const selectedDefinition = this.widgetTypes.find(
+      (definition) => definition.type === type,
+    );
+
+    if (selectedDefinition !== undefined) {
+      this.selectedWidgetType = selectedDefinition.type;
     }
   }
 }

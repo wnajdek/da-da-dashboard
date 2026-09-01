@@ -157,6 +157,12 @@ describe('App', () => {
       '#widget-type',
     ) as HTMLSelectElement;
 
+    expect([...widgetTypeSelect.options].map((option) => option.text)).toEqual([
+      'KPI',
+      'Time series',
+      'Notes',
+    ]);
+
     for (const widgetType of ['kpi', 'time-series', 'notes'] as const) {
       widgetTypeSelect.value = widgetType;
       widgetTypeSelect.dispatchEvent(new Event('change'));
@@ -170,10 +176,37 @@ describe('App', () => {
 
     expect(compiled.querySelectorAll('.widget-card').length).toBe(6);
     expect(compiled.textContent).toContain('New note');
-    expect(
-      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!).dashboard
-        .widgets,
-    ).toHaveSize(6);
+    const addedWidgets = JSON.parse(
+      storage.getItem('configurable-dashboard.snapshot')!,
+    ).dashboard.widgets.slice(3);
+
+    expect(addedWidgets).toEqual([
+      jasmine.objectContaining({
+        type: 'kpi',
+        layout: { x: 0, y: 3, w: 3, h: 2 },
+        configuration: {
+          title: 'Monthly revenue',
+          dataSource: 'monthly-revenue',
+          displayFormat: 'currency',
+        },
+      }),
+      jasmine.objectContaining({
+        type: 'time-series',
+        layout: { x: 0, y: 5, w: 3, h: 2 },
+        configuration: {
+          title: 'Revenue trend',
+          dataSource: 'monthly-revenue-trend',
+        },
+      }),
+      jasmine.objectContaining({
+        type: 'notes',
+        layout: { x: 0, y: 7, w: 3, h: 2 },
+        configuration: {
+          title: 'New note',
+          body: 'Add your notes here.',
+        },
+      }),
+    ]);
 
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
