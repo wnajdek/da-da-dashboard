@@ -1,16 +1,11 @@
 import { computed, Injectable, Signal, signal } from '@angular/core';
 import {
   Dashboard,
-  BuiltInWidgetType,
-  WidgetConfigurationUpdate,
   WidgetInstance,
   WidgetLayoutChange,
-  isKnownWidgetInstance,
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
-import { DemoDataService } from './demo-data.service';
-import { BUILT_IN_WIDGET_REGISTRY, WidgetDefinition } from './widget-registry';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
 
@@ -23,32 +18,17 @@ interface PendingWidgetRemoval {
 export class DashboardStore {
   readonly #dashboard = signal<Dashboard | null>(null);
   readonly #recoveryMessage = signal<string | null>(null);
-  readonly #selectedWidgetId = signal<string | null>(null);
   readonly #pendingWidgetRemoval = signal<PendingWidgetRemoval | null>(null);
   #undoRemovalTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly dashboard: Signal<Dashboard | null> = this.#dashboard.asReadonly();
   readonly recoveryMessage: Signal<string | null> =
     this.#recoveryMessage.asReadonly();
-  readonly selectedWidget = computed(() => {
-    const dashboard = this.#dashboard();
-    const selectedWidgetId = this.#selectedWidgetId();
-    const selectedWidget = dashboard?.widgets.find(
-      (widget) => widget.id === selectedWidgetId,
-    );
-
-    return selectedWidget !== undefined && isKnownWidgetInstance(selectedWidget)
-      ? selectedWidget
-      : null;
-  });
   readonly canUndoRemoval = computed(
     () => this.#pendingWidgetRemoval() !== null,
   );
 
-  constructor(
-    private readonly persistence: DashboardPersistenceService,
-    private readonly demoData: DemoDataService,
-  ) {
+  constructor(private readonly persistence: DashboardPersistenceService) {
     const result = this.persistence.load();
 
     if (result.status === 'ready') {
@@ -66,36 +46,6 @@ export class DashboardStore {
 
   resetToDefaults(): void {
     this.#loadSeedDashboard();
-  }
-
-  addWidget(type: BuiltInWidgetType): void {
-    const dashboard = this.#dashboard();
-
-    if (dashboard === null) {
-      return;
-    }
-
-    const updatedDashboard: Dashboard = {
-      ...dashboard,
-      widgets: [
-        ...dashboard.widgets,
-        createDefaultWidget(BUILT_IN_WIDGET_REGISTRY[type], dashboard),
-      ],
-    };
-
-    if (this.persistence.save(updatedDashboard)) {
-      this.#dashboard.set(updatedDashboard);
-    }
-  }
-
-  selectWidget(id: string): void {
-    if (this.#dashboard()?.widgets.some((widget) => widget.id === id)) {
-      this.#selectedWidgetId.set(id);
-    }
-  }
-
-  clearWidgetSelection(): void {
-    this.#selectedWidgetId.set(null);
   }
 
   removeWidget(id: string): void {
@@ -123,7 +73,6 @@ export class DashboardStore {
 
     this.#clearPendingWidgetRemoval();
     this.#dashboard.set(updatedDashboard);
-    this.#selectedWidgetId.set(null);
     this.#pendingWidgetRemoval.set({ widget, index });
     this.#undoRemovalTimer = setTimeout(() => {
       this.#pendingWidgetRemoval.set(null);
@@ -154,10 +103,6 @@ export class DashboardStore {
     }
   }
 
-  refreshDemoData(): void {
-    this.demoData.refresh();
-  }
-
   commitGridLayoutChange(changes: readonly WidgetLayoutChange[]): void {
     const dashboard = this.#dashboard();
 
@@ -182,29 +127,6 @@ export class DashboardStore {
     }
   }
 
-  updateWidgetConfiguration(
-    id: string,
-    update: WidgetConfigurationUpdate,
-  ): void {
-    const dashboard = this.#dashboard();
-
-    if (dashboard === null) {
-      return;
-    }
-
-    const updatedDashboard: Dashboard = {
-      ...dashboard,
-      widgets: dashboard.widgets.map((widget) =>
-        widget.id === id ? updateWidgetConfiguration(widget, update) : widget,
-      ),
-    };
-
-    if (this.persistence.save(updatedDashboard)) {
-      this.#dashboard.set(updatedDashboard);
-      this.#selectedWidgetId.set(null);
-    }
-  }
-
   #loadSeedDashboard(): void {
     const dashboard = createSeedDashboard();
 
@@ -226,49 +148,4 @@ export class DashboardStore {
 
     this.#pendingWidgetRemoval.set(null);
   }
-}
-
-function updateWidgetConfiguration(
-  widget: WidgetInstance,
-  update: WidgetConfigurationUpdate,
-): WidgetInstance {
-  if (!isKnownWidgetInstance(widget)) {
-    return widget;
-  }
-
-  switch (widget.type) {
-    case 'kpi':
-      return update.type === 'kpi'
-        ? { ...widget, configuration: update.configuration }
-        : widget;
-    case 'time-series':
-      return update.type === 'time-series'
-        ? { ...widget, configuration: update.configuration }
-        : widget;
-    case 'notes':
-      return update.type === 'notes'
-        ? { ...widget, configuration: update.configuration }
-        : widget;
-  }
-}
-
-function createDefaultWidget(
-  definition: WidgetDefinition,
-  dashboard: Dashboard,
-): WidgetInstance {
-  const layout = {
-    x: 0,
-    y: Math.max(
-      0,
-      ...dashboard.widgets.map((widget) => widget.layout.y + widget.layout.h),
-    ),
-    ...definition.preferredLayout,
-  };
-
-  return {
-    id: crypto.randomUUID(),
-    type: definition.type,
-    layout,
-    configuration: definition.defaultConfiguration,
-  } as WidgetInstance;
 }

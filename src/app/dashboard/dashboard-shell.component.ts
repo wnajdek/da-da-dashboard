@@ -1,13 +1,10 @@
 import { Component, inject } from '@angular/core';
-import { BuiltInWidgetType } from './dashboard.models';
 import { DashboardStore } from './dashboard.store';
-import { WidgetConfigurationEditorComponent } from './widget-configuration-editor.component';
 import { DashboardGridComponent } from './dashboard-grid.component';
-import { BUILT_IN_WIDGET_TYPES } from './widget-registry';
 
 @Component({
   selector: 'app-dashboard-shell',
-  imports: [DashboardGridComponent, WidgetConfigurationEditorComponent],
+  imports: [DashboardGridComponent],
   template: `
     <main class="dashboard">
       @if (store.recoveryMessage(); as recoveryMessage) {
@@ -26,36 +23,11 @@ import { BUILT_IN_WIDGET_TYPES } from './widget-registry';
           <p class="subtitle">
             A seeded workspace for exploring your team's pulse.
           </p>
-          <div class="add-widget">
-            <label for="widget-type">Add a widget</label>
-            <select id="widget-type" (change)="selectWidgetType($event)">
-              @for (widgetType of widgetTypes; track widgetType.type) {
-                <option [value]="widgetType.type">
-                  {{ widgetType.displayName }}
-                </option>
-              }
-            </select>
-            <button
-              type="button"
-              data-testid="add-widget"
-              (click)="store.addWidget(selectedWidgetType)"
-            >
-              Add widget
-            </button>
-            <button
-              type="button"
-              data-testid="refresh-dashboard"
-              (click)="store.refreshDemoData()"
-            >
-              Refresh demo data
-            </button>
-          </div>
         </header>
 
         <app-dashboard-grid
           [dashboard]="dashboard"
           (layoutCommitted)="store.commitGridLayoutChange($event)"
-          (widgetSelected)="store.selectWidget($event)"
           (widgetRemoved)="store.removeWidget($event)"
         />
 
@@ -71,16 +43,6 @@ import { BUILT_IN_WIDGET_TYPES } from './widget-registry';
             </button>
           </aside>
         }
-
-        @if (store.selectedWidget(); as selectedWidget) {
-          <app-widget-configuration-editor
-            [widget]="selectedWidget"
-            (configurationSaved)="
-              store.updateWidgetConfiguration(selectedWidget.id, $event)
-            "
-            (closed)="store.clearWidgetSelection()"
-          />
-        }
       }
     </main>
   `,
@@ -88,18 +50,4 @@ import { BUILT_IN_WIDGET_TYPES } from './widget-registry';
 })
 export class DashboardShellComponent {
   protected readonly store = inject(DashboardStore);
-  protected readonly widgetTypes = BUILT_IN_WIDGET_TYPES;
-  protected selectedWidgetType: BuiltInWidgetType = 'kpi';
-
-  protected selectWidgetType(event: Event): void {
-    const type = (event.target as HTMLSelectElement).value;
-
-    const selectedDefinition = this.widgetTypes.find(
-      (definition) => definition.type === type,
-    );
-
-    if (selectedDefinition !== undefined) {
-      this.selectedWidgetType = selectedDefinition.type;
-    }
-  }
 }

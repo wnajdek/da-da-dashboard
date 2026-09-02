@@ -97,28 +97,11 @@ function isWidgetInstance(value: unknown): value is WidgetInstance {
     return false;
   }
 
-  const configuration = value['configuration'];
-
-  switch (value['type']) {
-    case 'kpi':
-      return (
-        typeof configuration['title'] === 'string' &&
-        configuration['dataSource'] === 'monthly-revenue' &&
-        configuration['displayFormat'] === 'currency'
-      );
-    case 'time-series':
-      return (
-        typeof configuration['title'] === 'string' &&
-        configuration['dataSource'] === 'monthly-revenue-trend'
-      );
-    case 'notes':
-      return (
-        typeof configuration['title'] === 'string' &&
-        typeof configuration['body'] === 'string'
-      );
-    default:
-      return typeof value['type'] === 'string' && value['type'].length > 0;
-  }
+  return (
+    typeof value['type'] === 'string' &&
+    value['type'].length > 0 &&
+    isJsonValue(value['configuration'])
+  );
 }
 
 function isGridLayout(value: unknown): boolean {
@@ -133,6 +116,26 @@ function isGridLayout(value: unknown): boolean {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isJsonValue(value: unknown): boolean {
+  if (
+    value === null ||
+    typeof value === 'boolean' ||
+    typeof value === 'string'
+  ) {
+    return true;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isJsonValue);
+  }
+
+  return isRecord(value) && Object.values(value).every(isJsonValue);
 }
 
 function isUuid(value: unknown): boolean {

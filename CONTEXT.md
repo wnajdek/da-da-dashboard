@@ -12,29 +12,51 @@ Dashboard. It owns its portable Grid Layout and Widget Configuration.
 
 ## Widget Type
 
-A stable identifier for the kind of a Widget Instance. The currently supported
-types are `kpi`, `time-series`, and `notes`; a persisted type can also be
-unavailable to the running application.
+A stable identifier supplied by a Widget Manifest for the kind of a Widget
+Instance. A persisted type can be unavailable when its Widget Installation is
+not available to the running application.
 
-## Widget Registry
+## Widget Catalog
 
-The application-startup composition of built-in Widget Type definitions. It is
-fixed for the browser session; adding a Widget Type requires a source change,
-application build, and deployment. A definition may load its implementation
-lazily.
+A trusted collection of available Widget Manifests from which a Dashboard user
+may install a Widget Type. It is not a source of untrusted executable code.
 
-## Widget Definition
+## Widget Manifest
 
-The registered, Widget-Type-specific description used by the Dashboard host. It
-owns display metadata, default Widget Configuration, preferred Grid Layout size,
-and the lazy implementation loader. It does not own Widget Instance identity,
-placement, order, or persistence.
+A declarative description produced by a Widget Author. It identifies the Widget
+Type, display metadata, preferred Grid Layout size, Custom Element tag, and
+entry bundle needed to load the Widget Element. It does not contain Dashboard
+instance identity, placement, order, or persisted Widget Configuration.
 
-## Widget Data Gateway
+## Widget Installation
 
-The narrow application-provided contract through which a Widget implementation
-obtains its display data and observes refreshes. It is distinct from the
-Dashboard store and does not expose Dashboard management operations.
+A user-approved record that makes a trusted Widget Manifest available to the
+Dashboard. Removing an installation does not remove its existing Widget
+Instances; they become Unavailable Widgets.
+
+## Trusted Manifest Origin
+
+An explicitly configured web origin from which the Dashboard may fetch a Widget
+Manifest and load its declared entry bundle. A user may provide a Manifest URL
+in the installation UI only when its origin is a Trusted Manifest Origin.
+
+## Trusted Widget
+
+A Widget whose executable bundle is accepted from an author or catalog trusted
+by the Dashboard operator. Its code runs in the Dashboard page and must be
+treated as having the same browser privileges as the Dashboard.
+
+## Widget Element
+
+A browser Custom Element registered by a loaded trusted Widget bundle. The
+Dashboard uses its declared tag, properties, and Custom Events rather than
+depending on the Widget's Angular implementation.
+
+## Widget Author
+
+The person or team that builds and publishes a separate Widget application and
+its Widget Manifest. A Widget Author owns the Widget's data fetching and
+domain-specific presentation.
 
 ## Unavailable Widget
 
@@ -45,8 +67,16 @@ Widget Instances from being used.
 
 ## Widget Configuration
 
-The discriminated, Widget-Type-specific persisted settings that determine a
-Widget Instance's title and content.
+The Widget-Type-specific persisted settings passed to a Widget Element. The
+Dashboard stores it but does not interpret its domain fields or supply the
+Widget's display data.
+
+## Widget Settings UI
+
+The Widget Author's user interface, rendered inside its Widget Element, for
+viewing and changing Widget Configuration. It emits a serializable replacement
+configuration for the Dashboard to persist; the Dashboard does not render
+Widget-Type-specific settings forms.
 
 ## Grid Layout
 

@@ -1,12 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import type {
-  UnavailableWidgetConfiguration,
-  WidgetConfiguration,
-  WidgetType,
-} from './dashboard.models';
-
-type WidgetCardConfiguration =
-  Pick<WidgetConfiguration, 'title'> | UnavailableWidgetConfiguration;
+import type { WidgetConfiguration, WidgetType } from './dashboard.models';
 
 @Component({
   selector: 'app-unavailable-widget-card',
@@ -35,11 +28,11 @@ type WidgetCardConfiguration =
 })
 export class UnavailableWidgetCardComponent {
   readonly widgetType = input.required<WidgetType>();
-  readonly configuration = input.required<WidgetCardConfiguration>();
+  readonly configuration = input.required<WidgetConfiguration>();
   readonly removed = output<void>();
 
   protected displayTitle(): string {
-    const title = this.configuration().title;
+    const title = this.configuration()['title'];
 
     return typeof title === 'string' && title.length > 0
       ? title
