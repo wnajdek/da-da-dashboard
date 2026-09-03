@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { DashboardStore } from './dashboard.store';
 import { DashboardGridComponent } from './dashboard-grid.component';
+import { WidgetRuntimeService } from './widget-runtime.service';
 
 @Component({
   selector: 'app-dashboard-shell',
@@ -20,10 +21,93 @@ import { DashboardGridComponent } from './dashboard-grid.component';
         <header>
           <p class="eyebrow">Dashboard</p>
           <h1>{{ dashboard.title }}</h1>
-          <p class="subtitle">
-            A seeded workspace for exploring your team's pulse.
-          </p>
+          <p class="subtitle">A workspace for your installed Widgets.</p>
         </header>
+
+        <form
+          class="install-widget"
+          data-testid="install-widget-form"
+          novalidate
+          (submit)="installManifest($event)"
+        >
+          <div class="install-widget-field">
+            <label for="manifest-url">Widget Manifest URL</label>
+            <input
+              id="manifest-url"
+              data-testid="manifest-url"
+              type="url"
+              autocomplete="url"
+              placeholder="https://widgets.example.test/manifest.json"
+              [value]="manifestUrl()"
+              (input)="updateManifestUrl($event)"
+            />
+          </div>
+          <button type="submit" [disabled]="runtime.isInstalling()">
+            @if (runtime.isInstalling()) {
+              Installing…
+            } @else {
+              Install Widget
+            }
+          </button>
+        </form>
+
+        @if (runtime.feedback(); as feedback) {
+          <p
+            class="installation-feedback"
+            data-testid="widget-installation-status"
+            role="status"
+            [class.installation-feedback--error]="feedback.status === 'error'"
+          >
+            {{ feedback.message }}
+          </p>
+        }
+
+        @if (runtime.installations().length > 0) {
+          <section
+            class="available-widgets"
+            data-testid="available-widgets"
+            aria-labelledby="available-widgets-title"
+          >
+            <div>
+              <p class="eyebrow">Widget Catalog</p>
+              <h2 id="available-widgets-title">Available Widgets</h2>
+            </div>
+            <div class="available-widget-list">
+              @for (
+                installation of runtime.installations();
+                track installation.type
+              ) {
+                <article
+                  class="available-widget"
+                  data-testid="available-widget"
+                >
+                  <p class="widget-kind">{{ installation.type }}</p>
+                  <h3>{{ installation.displayName }}</h3>
+                  @if (installation.description) {
+                    <p class="widget-caption">{{ installation.description }}</p>
+                  }
+                  <dl class="widget-metadata">
+                    <div>
+                      <dt>Version</dt>
+                      <dd>{{ installation.version }}</dd>
+                    </div>
+                    <div>
+                      <dt>Widget Element</dt>
+                      <dd>{{ installation.elementTag }}</dd>
+                    </div>
+                    <div>
+                      <dt>Preferred size</dt>
+                      <dd>
+                        {{ installation.preferredLayout.w }} ×
+                        {{ installation.preferredLayout.h }}
+                      </dd>
+                    </div>
+                  </dl>
+                </article>
+              }
+            </div>
+          </section>
+        }
 
         <app-dashboard-grid
           [dashboard]="dashboard"
@@ -50,4 +134,23 @@ import { DashboardGridComponent } from './dashboard-grid.component';
 })
 export class DashboardShellComponent {
   protected readonly store = inject(DashboardStore);
+  protected readonly runtime = inject(WidgetRuntimeService);
+  protected readonly manifestUrl = signal('');
+
+  protected updateManifestUrl(event: Event): void {
+    const input = event.target;
+
+    if (input instanceof HTMLInputElement) {
+      this.manifestUrl.set(input.value);
+    }
+  }
+
+  protected async installManifest(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    const result = await this.runtime.installManifest(this.manifestUrl());
+
+    if (result.status === 'installed') {
+      this.manifestUrl.set('');
+    }
+  }
 }

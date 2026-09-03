@@ -1,14 +1,10 @@
+import type { JsonObject } from './json-value';
+
+export type { JsonObject, JsonValue } from './json-value';
+
 export type WidgetType = string & {};
 
-export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | readonly JsonValue[]
-  | { readonly [key: string]: JsonValue };
-
-export type WidgetConfiguration = { readonly [key: string]: JsonValue };
+export type WidgetConfiguration = JsonObject;
 
 export interface GridLayout {
   readonly x: number;

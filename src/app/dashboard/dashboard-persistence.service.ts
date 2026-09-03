@@ -1,5 +1,6 @@
 import { inject, Injectable, InjectionToken } from '@angular/core';
-import { Dashboard, WidgetInstance } from './dashboard.models';
+import type { Dashboard, WidgetInstance } from './dashboard.models';
+import { isJsonObject, isRecord } from './json-value';
 
 export const DASHBOARD_STORAGE_KEY = 'configurable-dashboard.snapshot';
 export const DASHBOARD_STORAGE = new InjectionToken<Storage>(
@@ -92,16 +93,12 @@ function isWidgetInstance(value: unknown): value is WidgetInstance {
     !isRecord(value) ||
     !isUuid(value['id']) ||
     !isGridLayout(value['layout']) ||
-    !isRecord(value['configuration'])
+    !isJsonObject(value['configuration'])
   ) {
     return false;
   }
 
-  return (
-    typeof value['type'] === 'string' &&
-    value['type'].length > 0 &&
-    isJsonValue(value['configuration'])
-  );
+  return typeof value['type'] === 'string' && value['type'].length > 0;
 }
 
 function isGridLayout(value: unknown): boolean {
@@ -112,30 +109,6 @@ function isGridLayout(value: unknown): boolean {
     isPositiveFiniteNumber(value['w']) &&
     isPositiveFiniteNumber(value['h'])
   );
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isJsonValue(value: unknown): boolean {
-  if (
-    value === null ||
-    typeof value === 'boolean' ||
-    typeof value === 'string'
-  ) {
-    return true;
-  }
-
-  if (typeof value === 'number') {
-    return Number.isFinite(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.every(isJsonValue);
-  }
-
-  return isRecord(value) && Object.values(value).every(isJsonValue);
 }
 
 function isUuid(value: unknown): boolean {
