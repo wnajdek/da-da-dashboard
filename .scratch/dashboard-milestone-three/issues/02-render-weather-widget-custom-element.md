@@ -4,11 +4,10 @@
 
 **Blocked by:** 01: Install a trusted Widget Manifest.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The Weather Widget is independently built and registers exactly the Widget Element declared by its Widget Manifest.
-- [ ] Adding the installed Weather Widget creates a Widget Instance using the Manifest's default Widget Configuration and preferred Grid Layout size while the Dashboard chooses placement.
-- [ ] The Dashboard assigns opaque JSON-safe configuration to the Widget Element and persists complete JSON-safe replacement configuration from its bubbling `configuration-changed` event.
-- [ ] The Weather Widget owns a visible settings UI and validation; the Dashboard contains no weather-specific form or data logic.
-- [ ] Dashboard-host and Widget-Element contract tests prove the complete install, add, settings-save, and reload path.
-
+- [x] The Weather Widget is independently built and registers exactly the Widget Element declared by its Widget Manifest.
+- [x] Adding the installed Weather Widget creates a Widget Instance using the Manifest's default Widget Configuration and preferred Grid Layout size while the Dashboard chooses placement.
+- [x] The Dashboard assigns opaque JSON-safe configuration to the Widget Element and persists complete JSON-safe replacement configuration from its bubbling `configuration-changed` event.
+- [x] The Weather Widget owns a visible settings UI and validation; the Dashboard contains no weather-specific form or data logic.
+- [x] Dashboard-host and Widget-Element contract tests prove the complete install, add, settings-save, and reload path.
