@@ -1,11 +1,14 @@
 import { computed, Injectable, Signal, signal } from '@angular/core';
 import {
   Dashboard,
+  WidgetConfigurationChange,
+  WidgetCreation,
   WidgetInstance,
   WidgetLayoutChange,
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
+import { isJsonObject } from './json-value';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
 
@@ -46,6 +49,63 @@ export class DashboardStore {
 
   resetToDefaults(): void {
     this.#loadSeedDashboard();
+  }
+
+  addWidget(creation: WidgetCreation): void {
+    const dashboard = this.#dashboard();
+
+    if (dashboard === null || !isJsonObject(creation.configuration)) {
+      return;
+    }
+
+    const widget: WidgetInstance = {
+      id: crypto.randomUUID(),
+      type: creation.type,
+      configuration: creation.configuration,
+      layout: {
+        x: 0,
+        y: this.#nextWidgetY(dashboard),
+        w: creation.preferredLayout.w,
+        h: creation.preferredLayout.h,
+      },
+    };
+    const updatedDashboard: Dashboard = {
+      ...dashboard,
+      widgets: [...dashboard.widgets, widget],
+    };
+
+    if (this.persistence.save(updatedDashboard)) {
+      this.#dashboard.set(updatedDashboard);
+    }
+  }
+
+  updateWidgetConfiguration(change: WidgetConfigurationChange): void {
+    const dashboard = this.#dashboard();
+
+    if (dashboard === null || !isJsonObject(change.configuration)) {
+      return;
+    }
+
+    const widget = dashboard.widgets.find(
+      (candidate) => candidate.id === change.id,
+    );
+
+    if (widget === undefined) {
+      return;
+    }
+
+    const updatedDashboard: Dashboard = {
+      ...dashboard,
+      widgets: dashboard.widgets.map((candidate) =>
+        candidate.id === change.id
+          ? { ...candidate, configuration: change.configuration }
+          : candidate,
+      ),
+    };
+
+    if (this.persistence.save(updatedDashboard)) {
+      this.#dashboard.set(updatedDashboard);
+    }
   }
 
   removeWidget(id: string): void {
@@ -147,5 +207,12 @@ export class DashboardStore {
     }
 
     this.#pendingWidgetRemoval.set(null);
+  }
+
+  #nextWidgetY(dashboard: Dashboard): number {
+    return dashboard.widgets.reduce(
+      (bottom, widget) => Math.max(bottom, widget.layout.y + widget.layout.h),
+      0,
+    );
   }
 }

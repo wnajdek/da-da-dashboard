@@ -10,6 +10,10 @@ export interface WidgetManifestSource {
   load(url: string): Promise<unknown>;
 }
 
+export interface WidgetEntryBundleLoader {
+  load(url: string): Promise<void>;
+}
+
 export const WIDGET_MANIFEST_SOURCE = new InjectionToken<WidgetManifestSource>(
   'Widget manifest source',
   {
@@ -26,6 +30,12 @@ export const TRUSTED_MANIFEST_ORIGINS = new InjectionToken<readonly string[]>(
   },
 );
 
+export const WIDGET_ENTRY_BUNDLE_LOADER =
+  new InjectionToken<WidgetEntryBundleLoader>('Widget entry bundle loader', {
+    providedIn: 'root',
+    factory: () => browserWidgetEntryBundleLoader,
+  });
+
 export interface WidgetInstallationFeedback {
   readonly status: 'success' | 'error';
   readonly message: string;
@@ -41,6 +51,7 @@ export class WidgetRuntimeService {
   readonly #feedback = signal<WidgetInstallationFeedback | null>(null);
   readonly #isInstalling = signal(false);
   readonly #manifestSource = inject(WIDGET_MANIFEST_SOURCE);
+  readonly #entryBundleLoader = inject(WIDGET_ENTRY_BUNDLE_LOADER);
   readonly #trustedOrigins = new Set(
     inject(TRUSTED_MANIFEST_ORIGINS)
       .map(normalizeHttpUrl)
@@ -53,6 +64,8 @@ export class WidgetRuntimeService {
   readonly feedback: Signal<WidgetInstallationFeedback | null> =
     this.#feedback.asReadonly();
   readonly isInstalling: Signal<boolean> = this.#isInstalling.asReadonly();
+  readonly #entryBundlePromises = new Map<string, Promise<void>>();
+  readonly #elementSources = new Map<string, string>();
 
   constructor(
     private readonly installationPersistence: WidgetInstallationPersistenceService,
@@ -156,6 +169,77 @@ export class WidgetRuntimeService {
     }
   }
 
+  installationFor(type: string): WidgetInstallation | undefined {
+    return this.#installations().find(
+      (installation) => installation.type === type,
+    );
+  }
+
+  async loadElement(installation: WidgetInstallation): Promise<void> {
+    if (!this.#isTrustedInstallation(installation)) {
+      throw new Error('The Widget Installation is no longer trusted.');
+    }
+
+    const existingSource = this.#elementSources.get(installation.elementTag);
+
+    if (existingSource !== undefined) {
+      if (existingSource === installation.entryBundleUrl) {
+        return;
+      }
+
+      throw new Error(
+        `The Widget Element tag ${installation.elementTag} is already loaded from another bundle.`,
+      );
+    }
+
+    if (customElements.get(installation.elementTag) !== undefined) {
+      throw new Error(
+        `The Widget Element tag ${installation.elementTag} is already registered.`,
+      );
+    }
+
+    let load = this.#entryBundlePromises.get(installation.entryBundleUrl);
+
+    if (load === undefined) {
+      load = this.#entryBundleLoader.load(installation.entryBundleUrl);
+      this.#entryBundlePromises.set(installation.entryBundleUrl, load);
+    }
+
+    try {
+      await load;
+    } catch (error) {
+      this.#entryBundlePromises.delete(installation.entryBundleUrl);
+      throw error;
+    }
+
+    if (customElements.get(installation.elementTag) === undefined) {
+      throw new Error(
+        `The Widget bundle did not register ${installation.elementTag}.`,
+      );
+    }
+
+    this.#elementSources.set(
+      installation.elementTag,
+      installation.entryBundleUrl,
+    );
+  }
+
+  #isTrustedInstallation(installation: WidgetInstallation): boolean {
+    const manifestUrl = normalizeHttpUrl(installation.manifestUrl);
+    const entryBundleUrl = normalizeHttpUrl(installation.entryBundleUrl);
+
+    if (manifestUrl === null || entryBundleUrl === null) {
+      return false;
+    }
+
+    const manifestOrigin = new URL(manifestUrl).origin;
+
+    return (
+      this.#trustedOrigins.has(manifestOrigin) &&
+      new URL(entryBundleUrl).origin === manifestOrigin
+    );
+  }
+
   #trustedManifestUrl(input: string): TrustedManifestUrlResult {
     const manifestUrl = normalizeHttpUrl(input.trim());
 
@@ -199,6 +283,20 @@ const browserWidgetManifestSource: WidgetManifestSource = {
     }
 
     return (await response.json()) as unknown;
+  },
+};
+
+const browserWidgetEntryBundleLoader: WidgetEntryBundleLoader = {
+  load(url: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.type = 'module';
+      script.src = url;
+      script.onload = () => resolve();
+      script.onerror = () =>
+        reject(new Error('Widget entry bundle failed to load.'));
+      document.head.append(script);
+    });
   },
 };
 

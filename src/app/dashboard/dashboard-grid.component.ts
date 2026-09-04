@@ -16,15 +16,18 @@ import {
 import { GridItemHTMLElement, GridStack, GridStackNode } from 'gridstack';
 import {
   Dashboard,
+  WidgetConfigurationChange,
   WidgetInstance,
   WidgetLayoutChange,
 } from './dashboard.models';
 import { GridStackLayoutAdapter } from './gridstack-layout.adapter';
 import { UnavailableWidgetCardComponent } from './unavailable-widget-card.component';
+import { WidgetElementComponent } from './widget-element.component';
+import { WidgetRuntimeService } from './widget-runtime.service';
 
 @Component({
   selector: 'app-dashboard-grid',
-  imports: [UnavailableWidgetCardComponent],
+  imports: [UnavailableWidgetCardComponent, WidgetElementComponent],
   template: `
     <section
       #grid
@@ -43,11 +46,21 @@ import { UnavailableWidgetCardComponent } from './unavailable-widget-card.compon
           [attr.gs-h]="gridWidget.h"
         >
           <div class="grid-stack-item-content">
-            <app-unavailable-widget-card
-              [widgetType]="widget.type"
-              [configuration]="widget.configuration"
-              (removed)="widgetRemoved.emit(widget.id)"
-            />
+            @if (installationFor(widget.type); as installation) {
+              <app-widget-element
+                [installation]="installation"
+                [widgetId]="widget.id"
+                [configuration]="widget.configuration"
+                (changed)="widgetConfigurationChanged.emit($event)"
+                (removed)="widgetRemoved.emit(widget.id)"
+              />
+            } @else {
+              <app-unavailable-widget-card
+                [widgetType]="widget.type"
+                [configuration]="widget.configuration"
+                (removed)="widgetRemoved.emit(widget.id)"
+              />
+            }
           </div>
         </section>
       }
@@ -58,6 +71,7 @@ import { UnavailableWidgetCardComponent } from './unavailable-widget-card.compon
 export class DashboardGridComponent implements AfterViewInit {
   readonly dashboard = input.required<Dashboard>();
   readonly layoutCommitted = output<readonly WidgetLayoutChange[]>();
+  readonly widgetConfigurationChanged = output<WidgetConfigurationChange>();
   readonly widgetRemoved = output<string>();
   protected readonly narrowScreen = signal(window.innerWidth <= 767);
 
@@ -65,6 +79,7 @@ export class DashboardGridComponent implements AfterViewInit {
     viewChild.required<ElementRef<HTMLElement>>('grid');
   readonly #destroyRef = inject(DestroyRef);
   readonly #injector = inject(Injector);
+  private readonly runtime = inject(WidgetRuntimeService);
   #grid: GridStack | null = null;
 
   constructor() {
@@ -104,6 +119,10 @@ export class DashboardGridComponent implements AfterViewInit {
 
   protected gridStackWidget(widget: WidgetInstance) {
     return GridStackLayoutAdapter.toGridStackWidget(widget);
+  }
+
+  protected installationFor(type: string) {
+    return this.runtime.installationFor(type);
   }
 
   #synchronizeGridItems(): void {

@@ -86,6 +86,41 @@
           }
         }
       }
+    },
+    "weather-widget": {
+      "projectType": "application",
+      "root": "projects/weather-widget",
+      "sourceRoot": "projects/weather-widget/src",
+      "prefix": "weather",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "projects/weather-widget/src/main.ts",
+            "index": "projects/weather-widget/src/index.html",
+            "tsConfig": "projects/weather-widget/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "projects/weather-widget/public"
+              }
+            ],
+            "styles": []
+          },
+          "configurations": {
+            "production": {
+              "outputHashing": "none"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
+        }
+      }
     }
   }
 }

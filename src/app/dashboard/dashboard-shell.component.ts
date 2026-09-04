@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { DashboardStore } from './dashboard.store';
 import { DashboardGridComponent } from './dashboard-grid.component';
+import type { WidgetInstallation } from './widget-installation-persistence.service';
 import { WidgetRuntimeService } from './widget-runtime.service';
 
 @Component({
@@ -103,6 +104,13 @@ import { WidgetRuntimeService } from './widget-runtime.service';
                       </dd>
                     </div>
                   </dl>
+                  <button
+                    type="button"
+                    data-testid="add-widget"
+                    (click)="addWidget(installation)"
+                  >
+                    Add Widget
+                  </button>
                 </article>
               }
             </div>
@@ -112,6 +120,7 @@ import { WidgetRuntimeService } from './widget-runtime.service';
         <app-dashboard-grid
           [dashboard]="dashboard"
           (layoutCommitted)="store.commitGridLayoutChange($event)"
+          (widgetConfigurationChanged)="store.updateWidgetConfiguration($event)"
           (widgetRemoved)="store.removeWidget($event)"
         />
 
@@ -152,5 +161,13 @@ export class DashboardShellComponent {
     if (result.status === 'installed') {
       this.manifestUrl.set('');
     }
+  }
+
+  protected addWidget(installation: WidgetInstallation): void {
+    this.store.addWidget({
+      type: installation.type,
+      configuration: installation.defaultConfiguration,
+      preferredLayout: installation.preferredLayout,
+    });
   }
 }

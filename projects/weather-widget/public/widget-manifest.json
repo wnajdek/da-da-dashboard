@@ -1,0 +1,17 @@
+{
+  "manifestVersion": 1,
+  "type": "weather",
+  "displayName": "Weather",
+  "description": "Current conditions for a saved location",
+  "version": "1.0.0",
+  "elementTag": "trusted-weather-widget",
+  "entryBundleUrl": "./main.js",
+  "defaultConfiguration": {
+    "location": "Warsaw",
+    "units": "metric"
+  },
+  "preferredLayout": {
+    "w": 5,
+    "h": 4
+  }
+}

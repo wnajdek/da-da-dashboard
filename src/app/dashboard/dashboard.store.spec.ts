@@ -36,6 +36,51 @@ describe('DashboardStore', () => {
     expect(store.dashboard()?.widgets).toEqual([]);
   });
 
+  it('adds an installed Widget with its opaque defaults and preferred Grid Layout', () => {
+    const store = TestBed.inject(DashboardStore);
+
+    store.addWidget({
+      type: 'weather',
+      configuration: { location: 'Warsaw', units: 'metric' },
+      preferredLayout: { w: 4, h: 3 },
+    });
+
+    const widget = store.dashboard()?.widgets[0];
+
+    expect(widget).toBeDefined();
+    expect(typeof widget?.id).toBe('string');
+    expect(widget?.type).toBe('weather');
+    expect(JSON.stringify(widget?.configuration)).toBe(
+      '{"location":"Warsaw","units":"metric"}',
+    );
+    expect(widget?.layout).toEqual({ x: 0, y: 0, w: 4, h: 3 });
+    expect(
+      JSON.parse(storage.getItem('configurable-dashboard.snapshot')!),
+    ).toEqual({
+      schemaVersion: 1,
+      dashboard: store.dashboard(),
+    });
+  });
+
+  it('persists a complete replacement Widget Configuration without interpreting it', () => {
+    const store = TestBed.inject(DashboardStore);
+    store.addWidget({
+      type: 'weather',
+      configuration: { location: 'Warsaw', units: 'metric' },
+      preferredLayout: { w: 4, h: 3 },
+    });
+    const widget = store.dashboard()!.widgets[0];
+
+    store.updateWidgetConfiguration({
+      id: widget.id,
+      configuration: { location: 'Gdańsk', units: 'imperial', forecastDays: 5 },
+    });
+
+    expect(JSON.stringify(store.dashboard()!.widgets[0].configuration)).toBe(
+      '{"location":"Gdańsk","units":"imperial","forecastDays":5}',
+    );
+  });
+
   it('retains the removal undo behavior for future installed Widgets', fakeAsync(() => {
     const widget = {
       id: 'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11',

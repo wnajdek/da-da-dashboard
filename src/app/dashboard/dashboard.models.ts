@@ -18,6 +18,17 @@ export interface WidgetLayoutChange {
   readonly layout: GridLayout;
 }
 
+export interface WidgetConfigurationChange {
+  readonly id: string;
+  readonly configuration: WidgetConfiguration;
+}
+
+export interface WidgetCreation {
+  readonly type: WidgetType;
+  readonly configuration: WidgetConfiguration;
+  readonly preferredLayout: Pick<GridLayout, 'w' | 'h'>;
+}
+
 export interface WidgetInstance {
   readonly id: string;
   readonly type: WidgetType;

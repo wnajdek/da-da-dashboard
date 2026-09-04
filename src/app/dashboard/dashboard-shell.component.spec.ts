@@ -4,13 +4,18 @@ import { DashboardShellComponent } from './dashboard-shell.component';
 import {
   DASHBOARD_STORAGE,
   DASHBOARD_STORAGE_KEY,
+  DashboardPersistenceService,
 } from './dashboard-persistence.service';
+import { DashboardStore } from './dashboard.store';
 import { WIDGET_INSTALLATIONS_STORAGE_KEY } from './widget-installation-persistence.service';
 import {
   TRUSTED_MANIFEST_ORIGINS,
+  WIDGET_ENTRY_BUNDLE_LOADER,
   WIDGET_MANIFEST_SOURCE,
+  WidgetEntryBundleLoader,
   WidgetManifestSource,
 } from './widget-runtime.service';
+import type { WidgetConfiguration } from './dashboard.models';
 import { MemoryStorage } from '../testing/memory-storage';
 
 const TRUSTED_ORIGIN = 'https://widgets.example.test';
@@ -348,12 +353,79 @@ describe('DashboardShellComponent', () => {
     expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(1);
     expect(host.textContent).toContain('Keep me');
   });
+
+  it('adds, renders, and persists a Widget Element configuration replacement', async () => {
+    const storage = new MemoryStorage();
+    const loader: WidgetEntryBundleLoader = {
+      load: jasmine.createSpy('load').and.callFake(async () => {
+        if (customElements.get('trusted-weather-widget') === undefined) {
+          customElements.define('trusted-weather-widget', TestWidgetElement);
+        }
+      }),
+    };
+    const source: WidgetManifestSource = {
+      load: jasmine.createSpy('load').and.resolveTo(VALID_MANIFEST),
+    };
+    const fixture = await createShellFixture(
+      storage,
+      source,
+      [TRUSTED_ORIGIN],
+      loader,
+    );
+
+    submitManifest(fixture, MANIFEST_URL);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    getHost(fixture)
+      .querySelector<HTMLButtonElement>('[data-testid="add-widget"]')
+      ?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = getHost(fixture);
+    const widgetElement = host.querySelector<TestWidgetElement>(
+      '[data-testid="widget-element-host"] trusted-weather-widget',
+    );
+
+    expect(loader.load).toHaveBeenCalledOnceWith(
+      `${TRUSTED_ORIGIN}/weather/entry.js`,
+    );
+    expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(1);
+    expect(widgetElement).not.toBeNull();
+    expect(JSON.stringify(widgetElement?.configuration)).toBe(
+      '{"location":"Warsaw","units":"metric"}',
+    );
+
+    widgetElement?.dispatchEvent(
+      new CustomEvent('configuration-changed', {
+        bubbles: true,
+        detail: { location: 'Kraków', units: 'metric' },
+      }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(
+      JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!).dashboard.widgets[0]
+        .configuration,
+    ).toEqual({ location: 'Kraków', units: 'metric' });
+
+    const reloadedStore = new DashboardStore(
+      TestBed.inject(DashboardPersistenceService),
+    );
+    expect(
+      JSON.stringify(reloadedStore.dashboard()?.widgets[0].configuration),
+    ).toBe('{"location":"Kraków","units":"metric"}');
+  });
 });
 
 async function createShellFixture(
   storage: MemoryStorage,
   source: WidgetManifestSource,
   trustedOrigins: readonly string[] = [TRUSTED_ORIGIN],
+  loader?: WidgetEntryBundleLoader,
 ): Promise<ComponentFixture<DashboardShellComponent>> {
   await TestBed.configureTestingModule({
     imports: [DashboardShellComponent],
@@ -362,12 +434,19 @@ async function createShellFixture(
       { provide: DASHBOARD_STORAGE, useValue: storage },
       { provide: TRUSTED_MANIFEST_ORIGINS, useValue: trustedOrigins },
       { provide: WIDGET_MANIFEST_SOURCE, useValue: source },
+      ...(loader === undefined
+        ? []
+        : [{ provide: WIDGET_ENTRY_BUNDLE_LOADER, useValue: loader }]),
     ],
   }).compileComponents();
 
   const fixture = TestBed.createComponent(DashboardShellComponent);
   fixture.detectChanges();
   return fixture;
+}
+
+class TestWidgetElement extends HTMLElement {
+  configuration: WidgetConfiguration = {};
 }
 
 function submitManifest(

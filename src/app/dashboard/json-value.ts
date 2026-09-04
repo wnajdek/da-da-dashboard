@@ -23,6 +23,20 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function isJsonValue(value: unknown): value is JsonValue {
+  return isJsonValueWithActiveObjects(value, new WeakSet<object>());
+}
+
+export function isJsonObject(value: unknown): value is JsonObject {
+  return (
+    isRecord(value) &&
+    isJsonValueWithActiveObjects(value, new WeakSet<object>())
+  );
+}
+
+function isJsonValueWithActiveObjects(
+  value: unknown,
+  activeObjects: WeakSet<object>,
+): value is JsonValue {
   if (
     value === null ||
     typeof value === 'boolean' ||
@@ -36,12 +50,36 @@ export function isJsonValue(value: unknown): value is JsonValue {
   }
 
   if (Array.isArray(value)) {
-    return value.every(isJsonValue);
+    if (activeObjects.has(value)) {
+      return false;
+    }
+
+    activeObjects.add(value);
+
+    try {
+      return value.every((item) =>
+        isJsonValueWithActiveObjects(item, activeObjects),
+      );
+    } finally {
+      activeObjects.delete(value);
+    }
   }
 
-  return isRecord(value) && Object.values(value).every(isJsonValue);
-}
+  if (!isRecord(value)) {
+    return false;
+  }
 
-export function isJsonObject(value: unknown): value is JsonObject {
-  return isRecord(value) && Object.values(value).every(isJsonValue);
+  if (activeObjects.has(value)) {
+    return false;
+  }
+
+  activeObjects.add(value);
+
+  try {
+    return Object.values(value).every((item) =>
+      isJsonValueWithActiveObjects(item, activeObjects),
+    );
+  } finally {
+    activeObjects.delete(value);
+  }
 }
