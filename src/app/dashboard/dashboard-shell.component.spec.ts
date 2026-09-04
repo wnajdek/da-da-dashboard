@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { createApplication } from '@angular/platform-browser';
 import { DashboardShellComponent } from './dashboard-shell.component';
 import {
   DASHBOARD_STORAGE,
@@ -8,6 +9,11 @@ import {
 } from './dashboard-persistence.service';
 import { DashboardStore } from './dashboard.store';
 import { WIDGET_INSTALLATIONS_STORAGE_KEY } from './widget-installation-persistence.service';
+import {
+  WEATHER_DATA_SOURCE,
+  type WeatherDataSource,
+} from '../../../projects/weather-widget/src/weather-data.service';
+import { createWeatherWidgetElement } from '../../../projects/weather-widget/src/weather-widget-element';
 import {
   TRUSTED_MANIFEST_ORIGINS,
   WIDGET_ENTRY_BUNDLE_LOADER,
@@ -356,10 +362,28 @@ describe('DashboardShellComponent', () => {
 
   it('adds, renders, and persists a Widget Element configuration replacement', async () => {
     const storage = new MemoryStorage();
+    const weatherSource: WeatherDataSource = {
+      read: jasmine.createSpy('read').and.resolveTo({
+        location: 'Warsaw',
+        temperature: 21.5,
+        temperatureUnit: '°C',
+        humidity: 55,
+        weatherCode: 1,
+      }),
+    };
+    const weatherApplication = await createApplication({
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: WEATHER_DATA_SOURCE, useValue: weatherSource },
+      ],
+    });
     const loader: WidgetEntryBundleLoader = {
       load: jasmine.createSpy('load').and.callFake(async () => {
         if (customElements.get('trusted-weather-widget') === undefined) {
-          customElements.define('trusted-weather-widget', TestWidgetElement);
+          customElements.define(
+            'trusted-weather-widget',
+            createWeatherWidgetElement(Promise.resolve(weatherApplication)),
+          );
         }
       }),
     };
@@ -385,9 +409,11 @@ describe('DashboardShellComponent', () => {
     fixture.detectChanges();
 
     const host = getHost(fixture);
-    const widgetElement = host.querySelector<TestWidgetElement>(
-      '[data-testid="widget-element-host"] trusted-weather-widget',
-    );
+    const widgetElement = host.querySelector<
+      HTMLElement & {
+        configuration: WidgetConfiguration;
+      }
+    >('[data-testid="widget-element-host"] trusted-weather-widget');
 
     expect(loader.load).toHaveBeenCalledOnceWith(
       `${TRUSTED_ORIGIN}/weather/entry.js`,
@@ -397,19 +423,33 @@ describe('DashboardShellComponent', () => {
     expect(JSON.stringify(widgetElement?.configuration)).toBe(
       '{"location":"Warsaw","units":"metric"}',
     );
+    await waitForWeatherWidgetElement();
+
+    const location = widgetElement?.querySelector<HTMLInputElement>('input');
+    const form = widgetElement?.querySelector<HTMLFormElement>('form');
+
+    if (
+      location === null ||
+      location === undefined ||
+      form === null ||
+      form === undefined
+    ) {
+      throw new Error('Weather Widget Element settings form is missing.');
+    }
+
+    location.value = 'Kraków';
+    location.dispatchEvent(new Event('input', { bubbles: true }));
+    form.dispatchEvent(
+      new SubmitEvent('submit', { bubbles: true, cancelable: true }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await waitForWeatherWidgetElement();
 
     const updatedConfiguration: WidgetConfiguration = {
       location: 'Kraków',
       units: 'metric',
     };
-    widgetElement?.dispatchEvent(
-      new CustomEvent('configuration-changed', {
-        bubbles: true,
-        detail: updatedConfiguration,
-      }),
-    );
-    await fixture.whenStable();
-    fixture.detectChanges();
 
     expect(
       JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!).dashboard.widgets[0]
@@ -423,6 +463,7 @@ describe('DashboardShellComponent', () => {
     expect(
       JSON.stringify(reloadedStore.dashboard()?.widgets[0].configuration),
     ).toBe('{"location":"Kraków","units":"metric"}');
+    weatherApplication.destroy();
   });
 });
 
@@ -448,10 +489,6 @@ async function createShellFixture(
   const fixture = TestBed.createComponent(DashboardShellComponent);
   fixture.detectChanges();
   return fixture;
-}
-
-class TestWidgetElement extends HTMLElement {
-  configuration: WidgetConfiguration = {};
 }
 
 function submitManifest(
@@ -492,4 +529,8 @@ function expectEmptyDashboardSnapshot(storage: MemoryStorage): void {
       widgets: [],
     },
   });
+}
+
+function waitForWeatherWidgetElement(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve));
 }

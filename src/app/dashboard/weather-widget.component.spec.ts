@@ -1,7 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { createApplication } from '@angular/platform-browser';
-import { createWeatherWidgetElement } from '../../../projects/weather-widget/src/main';
+import { createWeatherWidgetElement } from '../../../projects/weather-widget/src/weather-widget-element';
 import { WeatherWidgetComponent } from '../../../projects/weather-widget/src/weather-widget.component';
 import {
   WEATHER_DATA_SOURCE,
