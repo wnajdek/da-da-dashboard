@@ -1,5 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { createApplication } from '@angular/platform-browser';
+import { createWeatherWidgetElement } from '../../../projects/weather-widget/src/main';
 import { WeatherWidgetComponent } from '../../../projects/weather-widget/src/weather-widget.component';
 import {
   WEATHER_DATA_SOURCE,
@@ -131,4 +133,68 @@ describe('WeatherWidgetComponent', () => {
 
     expect(host.textContent).toContain('Weather data could not be loaded.');
   });
+
+  it('implements the Widget Element configuration property and change-event contract', async () => {
+    const application = await createApplication({
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: WEATHER_DATA_SOURCE, useValue: source },
+      ],
+    });
+    const tag = 'weather-widget-contract-test';
+
+    if (customElements.get(tag) === undefined) {
+      customElements.define(
+        tag,
+        createWeatherWidgetElement(Promise.resolve(application)),
+      );
+    }
+
+    const element = document.createElement(tag) as HTMLElement & {
+      configuration: unknown;
+    };
+    const changes: CustomEvent<unknown>[] = [];
+    element.addEventListener('configuration-changed', (event) =>
+      changes.push(event as CustomEvent<unknown>),
+    );
+    element.configuration = { location: 'Gdańsk', units: 'imperial' };
+    document.body.append(element);
+    await waitForWidgetElement();
+
+    const location = element.querySelector<HTMLInputElement>('input');
+    const form = element.querySelector<HTMLFormElement>('form');
+
+    if (location === null || form === null) {
+      throw new Error('Weather Widget Element settings form is missing.');
+    }
+
+    expect(location.value).toBe('Gdańsk');
+    location.value = 'Kraków';
+    location.dispatchEvent(new Event('input', { bubbles: true }));
+    form.dispatchEvent(
+      new SubmitEvent('submit', { bubbles: true, cancelable: true }),
+    );
+    await waitForWidgetElement();
+
+    expect(changes).toHaveSize(1);
+    expect(changes[0].detail).toEqual({
+      location: 'Kraków',
+      units: 'imperial',
+    });
+
+    element.configuration = { location: 'Lublin', units: 'metric' };
+    await waitForWidgetElement();
+
+    expect(location.value).toBe('Lublin');
+    expect(source.read).toHaveBeenCalledWith({
+      location: 'Lublin',
+      units: 'metric',
+    });
+    element.remove();
+    application.destroy();
+  });
 });
+
+function waitForWidgetElement(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve));
+}

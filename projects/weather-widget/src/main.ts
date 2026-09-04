@@ -23,7 +23,7 @@ async function registerWeatherWidget(): Promise<void> {
   );
 }
 
-function createWeatherWidgetElement(
+export function createWeatherWidgetElement(
   application: Promise<ApplicationRef>,
 ): CustomElementConstructor {
   return class extends HTMLElement {
