@@ -398,10 +398,14 @@ describe('DashboardShellComponent', () => {
       '{"location":"Warsaw","units":"metric"}',
     );
 
+    const updatedConfiguration: WidgetConfiguration = {
+      location: 'Kraków',
+      units: 'metric',
+    };
     widgetElement?.dispatchEvent(
       new CustomEvent('configuration-changed', {
         bubbles: true,
-        detail: { location: 'Kraków', units: 'metric' },
+        detail: updatedConfiguration,
       }),
     );
     await fixture.whenStable();
@@ -410,7 +414,8 @@ describe('DashboardShellComponent', () => {
     expect(
       JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!).dashboard.widgets[0]
         .configuration,
-    ).toEqual({ location: 'Kraków', units: 'metric' });
+    ).toEqual(updatedConfiguration);
+    expect(widgetElement?.configuration).toEqual(updatedConfiguration);
 
     const reloadedStore = new DashboardStore(
       TestBed.inject(DashboardPersistenceService),
