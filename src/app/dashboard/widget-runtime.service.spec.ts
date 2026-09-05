@@ -6,7 +6,10 @@ import {
   WidgetRuntimeService,
 } from './widget-runtime.service';
 import { DASHBOARD_STORAGE } from './dashboard-persistence.service';
-import { WIDGET_INSTALLATIONS_STORAGE } from './widget-installation-persistence.service';
+import {
+  WIDGET_INSTALLATIONS_STORAGE,
+  WIDGET_INSTALLATIONS_STORAGE_KEY,
+} from './widget-installation-persistence.service';
 import { MemoryStorage } from '../testing/memory-storage';
 import type { WidgetInstallation } from './widget-installation-persistence.service';
 
@@ -70,6 +73,52 @@ describe('WidgetRuntimeService', () => {
       /no longer trusted/,
     );
     expect(loader.load).not.toHaveBeenCalled();
+  });
+
+  it('removes an installation while keeping the persisted installation snapshot valid', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      WIDGET_INSTALLATIONS_STORAGE_KEY,
+      JSON.stringify({ schemaVersion: 1, installations: [installation] }),
+    );
+    configure(storage, { load: jasmine.createSpy('load') });
+    const runtime = TestBed.inject(WidgetRuntimeService);
+
+    const result = runtime.removeInstallation(installation.type);
+
+    expect(result).toEqual({ status: 'removed', installation });
+    expect(runtime.installations()).toEqual([]);
+    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBe(
+      JSON.stringify({ schemaVersion: 1, installations: [] }),
+    );
+    expect(runtime.feedback()).toEqual({
+      status: 'success',
+      message:
+        'Removed “Weather”. Existing Widget Instances are now unavailable.',
+    });
+  });
+
+  it('keeps an installation available when its removal cannot be persisted', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      WIDGET_INSTALLATIONS_STORAGE_KEY,
+      JSON.stringify({ schemaVersion: 1, installations: [installation] }),
+    );
+    configure(storage, { load: jasmine.createSpy('load') });
+    const runtime = TestBed.inject(WidgetRuntimeService);
+    spyOn(storage, 'setItem').and.throwError('storage unavailable');
+
+    const result = runtime.removeInstallation(installation.type);
+
+    expect(result).toEqual({
+      status: 'rejected',
+      message: 'The Widget Installation could not be removed locally.',
+    });
+    expect(runtime.installations()).toEqual([installation]);
+    expect(runtime.feedback()).toEqual({
+      status: 'error',
+      message: 'The Widget Installation could not be removed locally.',
+    });
   });
 });
 

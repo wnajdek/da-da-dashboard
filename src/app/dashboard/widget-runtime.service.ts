@@ -41,9 +41,18 @@ export interface WidgetInstallationFeedback {
   readonly message: string;
 }
 
+export type WidgetInstallationRejection = {
+  readonly status: 'rejected';
+  readonly message: string;
+};
+
 export type WidgetInstallationResult =
   | { readonly status: 'installed'; readonly installation: WidgetInstallation }
-  | { readonly status: 'rejected'; readonly message: string };
+  | WidgetInstallationRejection;
+
+export type WidgetInstallationRemovalResult =
+  | { readonly status: 'removed'; readonly installation: WidgetInstallation }
+  | WidgetInstallationRejection;
 
 @Injectable({ providedIn: 'root' })
 export class WidgetRuntimeService {
@@ -175,6 +184,32 @@ export class WidgetRuntimeService {
     );
   }
 
+  removeInstallation(type: string): WidgetInstallationRemovalResult {
+    const installation = this.installationFor(type);
+
+    if (installation === undefined) {
+      return this.#reject('This Widget Type is not installed.');
+    }
+
+    const installations = this.#installations().filter(
+      (candidate) => candidate.type !== type,
+    );
+
+    if (!this.installationPersistence.save(installations)) {
+      return this.#reject(
+        'The Widget Installation could not be removed locally.',
+      );
+    }
+
+    this.#installations.set(installations);
+    this.#feedback.set({
+      status: 'success',
+      message: `Removed “${installation.displayName}”. Existing Widget Instances are now unavailable.`,
+    });
+
+    return { status: 'removed', installation };
+  }
+
   async loadElement(installation: WidgetInstallation): Promise<void> {
     if (!this.#isTrustedInstallation(installation)) {
       throw new Error('The Widget Installation is no longer trusted.');
@@ -260,7 +295,7 @@ export class WidgetRuntimeService {
     return { status: 'valid', url: manifestUrl };
   }
 
-  #reject(message: string): WidgetInstallationResult {
+  #reject(message: string): WidgetInstallationRejection {
     this.#feedback.set({ status: 'error', message });
     return { status: 'rejected', message };
   }

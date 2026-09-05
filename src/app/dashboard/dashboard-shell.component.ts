@@ -111,6 +111,17 @@ import { WidgetRuntimeService } from './widget-runtime.service';
                   >
                     Add Widget
                   </button>
+                  <button
+                    type="button"
+                    class="remove-installation"
+                    data-testid="remove-widget-installation"
+                    [attr.aria-label]="
+                      'Remove ' + installation.displayName + ' installation'
+                    "
+                    (click)="removeInstallation(installation)"
+                  >
+                    Remove installation
+                  </button>
                 </article>
               }
             </div>
@@ -169,5 +180,9 @@ export class DashboardShellComponent {
       configuration: installation.defaultConfiguration,
       preferredLayout: installation.preferredLayout,
     });
+  }
+
+  protected removeInstallation(installation: WidgetInstallation): void {
+    this.runtime.removeInstallation(installation.type);
   }
 }

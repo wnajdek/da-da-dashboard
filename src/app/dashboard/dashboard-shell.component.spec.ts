@@ -37,6 +37,27 @@ const VALID_MANIFEST = {
   defaultConfiguration: { location: 'Warsaw', units: 'metric' },
   preferredLayout: { w: 4, h: 3 },
 };
+const WORKING_MANIFEST = {
+  ...VALID_MANIFEST,
+  type: 'working-widget',
+  displayName: 'Working Widget',
+  elementTag: 'task-four-working-widget',
+  entryBundleUrl: './working.js',
+};
+const FAILED_MANIFEST = {
+  ...VALID_MANIFEST,
+  type: 'failed-widget',
+  displayName: 'Failed Widget',
+  elementTag: 'task-four-failed-widget',
+  entryBundleUrl: './failed.js',
+};
+const MISMATCHED_ELEMENT_MANIFEST = {
+  ...VALID_MANIFEST,
+  type: 'missing-widget',
+  displayName: 'Missing Element Widget',
+  elementTag: 'task-four-missing-widget',
+  entryBundleUrl: './missing.js',
+};
 
 describe('DashboardShellComponent', () => {
   it('installs a trusted manifest and shows it as an available Widget Type', async () => {
@@ -324,6 +345,290 @@ describe('DashboardShellComponent', () => {
     ).toHaveSize(1);
     expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(0);
     expectEmptyDashboardSnapshot(storage);
+  });
+
+  it('removes an installation without changing its Widget Instances and makes them unavailable', async () => {
+    const storage = new MemoryStorage();
+    const dashboard = {
+      id: 'e25b6b77-2b4e-4d7e-91df-51feded26e83',
+      title: 'Saved dashboard',
+      widgets: [
+        {
+          id: 'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11',
+          type: 'weather',
+          layout: { x: 2, y: 4, w: 5, h: 4 },
+          configuration: { location: 'Kraków', units: 'metric' },
+        },
+      ],
+    };
+    const savedSnapshot = JSON.stringify({ schemaVersion: 1, dashboard });
+    storage.setItem(DASHBOARD_STORAGE_KEY, savedSnapshot);
+    storage.setItem(
+      WIDGET_INSTALLATIONS_STORAGE_KEY,
+      JSON.stringify({
+        schemaVersion: 1,
+        installations: [
+          {
+            manifestUrl: MANIFEST_URL,
+            ...VALID_MANIFEST,
+            entryBundleUrl: `${TRUSTED_ORIGIN}/weather/entry.js`,
+          },
+        ],
+      }),
+    );
+    const source: WidgetManifestSource = {
+      load: jasmine.createSpy('load'),
+    };
+    const loader: WidgetEntryBundleLoader = {
+      load: jasmine.createSpy('load').and.resolveTo(),
+    };
+    const fixture = await createShellFixture(
+      storage,
+      source,
+      [TRUSTED_ORIGIN],
+      loader,
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = getHost(fixture);
+    const removeInstallation = host.querySelector<HTMLButtonElement>(
+      '[data-testid="remove-widget-installation"]',
+    );
+
+    if (removeInstallation === null) {
+      throw new Error('The Widget Installation removal control is missing.');
+    }
+
+    removeInstallation.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(
+      host.querySelectorAll('[data-testid="available-widget"]'),
+    ).toHaveSize(0);
+    expect(
+      host.querySelectorAll('[data-testid="unavailable-widget"]'),
+    ).toHaveSize(1);
+    expect(host.textContent).toContain('weather');
+    expect(host.textContent).toContain(
+      'Existing Widget Instances are now unavailable.',
+    );
+    expect(storage.getItem(DASHBOARD_STORAGE_KEY)).toBe(savedSnapshot);
+    expect(
+      JSON.parse(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)!),
+    ).toEqual({ schemaVersion: 1, installations: [] });
+  });
+
+  it('contains runtime failures while a functioning installed Widget remains usable', async () => {
+    const storage = new MemoryStorage();
+    const manifests = new Map<string, typeof VALID_MANIFEST>([
+      [`${TRUSTED_ORIGIN}/working/manifest.json`, WORKING_MANIFEST],
+      [`${TRUSTED_ORIGIN}/failed/manifest.json`, FAILED_MANIFEST],
+      [`${TRUSTED_ORIGIN}/missing/manifest.json`, MISMATCHED_ELEMENT_MANIFEST],
+    ]);
+    const source: WidgetManifestSource = {
+      load: jasmine.createSpy('load').and.callFake((url: string) => {
+        const manifest = manifests.get(url);
+
+        if (manifest === undefined) {
+          return Promise.reject(new Error('unknown manifest'));
+        }
+
+        return Promise.resolve(manifest);
+      }),
+    };
+    const loader: WidgetEntryBundleLoader = {
+      load: jasmine.createSpy('load').and.callFake(async (url: string) => {
+        if (url.endsWith('/working.js')) {
+          if (customElements.get(WORKING_MANIFEST.elementTag) === undefined) {
+            customElements.define(
+              WORKING_MANIFEST.elementTag,
+              class extends HTMLElement {
+                #configuration: unknown = null;
+
+                get configuration(): unknown {
+                  return this.#configuration;
+                }
+
+                set configuration(value: unknown) {
+                  this.#configuration = value;
+                }
+
+                connectedCallback(): void {
+                  this.innerHTML =
+                    '<p>Working Widget</p><button type="button" data-testid="working-widget-save">Save working settings</button>';
+                  this.querySelector<HTMLButtonElement>(
+                    '[data-testid="working-widget-save"]',
+                  )?.addEventListener('click', () => {
+                    this.dispatchEvent(
+                      new CustomEvent('configuration-changed', {
+                        bubbles: true,
+                        detail: { saved: true },
+                      }),
+                    );
+                  });
+                }
+              },
+            );
+          }
+
+          return;
+        }
+
+        if (url.endsWith('/failed.js')) {
+          throw new Error('bundle unavailable');
+        }
+
+        if (url.endsWith('/missing.js')) {
+          if (customElements.get('task-four-wrong-widget') === undefined) {
+            customElements.define(
+              'task-four-wrong-widget',
+              class extends HTMLElement {},
+            );
+          }
+        }
+      }),
+    };
+    const fixture = await createShellFixture(
+      storage,
+      source,
+      [TRUSTED_ORIGIN],
+      loader,
+    );
+
+    for (const manifestUrl of manifests.keys()) {
+      submitManifest(fixture, manifestUrl);
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    const host = getHost(fixture);
+    const addButtons = host.querySelectorAll<HTMLButtonElement>(
+      '[data-testid="add-widget"]',
+    );
+
+    expect(addButtons).toHaveSize(3);
+
+    for (const addButton of addButtons) {
+      addButton.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+
+    expect(loader.load).toHaveBeenCalledWith(
+      `${TRUSTED_ORIGIN}/working/working.js`,
+    );
+    expect(loader.load).toHaveBeenCalledWith(
+      `${TRUSTED_ORIGIN}/failed/failed.js`,
+    );
+    expect(loader.load).toHaveBeenCalledWith(
+      `${TRUSTED_ORIGIN}/missing/missing.js`,
+    );
+    expect(
+      host.querySelector(
+        `[data-testid="widget-element-host"] ${WORKING_MANIFEST.elementTag}`,
+      ),
+    ).not.toBeNull();
+    expect(
+      host.querySelectorAll('[data-testid="unavailable-widget"]'),
+    ).toHaveSize(2);
+    expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(3);
+
+    const availableWidgets = [
+      ...host.querySelectorAll<HTMLElement>('[data-testid="available-widget"]'),
+    ];
+    const failedWidget = availableWidgets.find((widget) =>
+      widget.textContent?.includes('Failed Widget'),
+    );
+
+    expect(failedWidget).not.toBeUndefined();
+
+    const removeInstallation = failedWidget?.querySelector<HTMLButtonElement>(
+      '[data-testid="remove-widget-installation"]',
+    );
+
+    if (removeInstallation === null || removeInstallation === undefined) {
+      throw new Error(
+        'The failed Widget Installation removal control is missing.',
+      );
+    }
+
+    removeInstallation.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(
+      host.querySelectorAll('[data-testid="available-widget"]'),
+    ).toHaveSize(2);
+    expect(
+      host.querySelectorAll('[data-testid="unavailable-widget"]'),
+    ).toHaveSize(2);
+    expect(
+      host.querySelector(
+        `[data-testid="widget-element-host"] ${WORKING_MANIFEST.elementTag}`,
+      ),
+    ).not.toBeNull();
+
+    const workingSave = host.querySelector<HTMLButtonElement>(
+      '[data-testid="working-widget-save"]',
+    );
+
+    if (workingSave === null) {
+      throw new Error('The functioning Widget settings control is missing.');
+    }
+
+    workingSave.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(
+      JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!).dashboard.widgets[0]
+        .configuration,
+    ).toEqual({ saved: true });
+
+    const unavailableWidgets = [
+      ...host.querySelectorAll<HTMLElement>(
+        '[data-testid="unavailable-widget"]',
+      ),
+    ];
+    const failedUnavailableWidget = unavailableWidgets.find((widget) =>
+      widget.textContent?.includes('failed-widget'),
+    );
+    const removeUnavailableWidget =
+      failedUnavailableWidget?.querySelector<HTMLButtonElement>(
+        '[data-testid="remove-unavailable-widget"]',
+      );
+
+    if (
+      failedUnavailableWidget === undefined ||
+      removeUnavailableWidget === null ||
+      removeUnavailableWidget === undefined
+    ) {
+      throw new Error('The unavailable Widget removal control is missing.');
+    }
+
+    removeUnavailableWidget.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(
+      host.querySelectorAll('[data-testid="unavailable-widget"]'),
+    ).toHaveSize(1);
+    expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(2);
+    expect(
+      host.querySelector(
+        `[data-testid="widget-element-host"] ${WORKING_MANIFEST.elementTag}`,
+      ),
+    ).not.toBeNull();
+    expect(
+      JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!).dashboard.widgets,
+    ).toHaveSize(2);
   });
 
   it('leaves an existing Dashboard untouched when installation is rejected', async () => {

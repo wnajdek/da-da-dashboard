@@ -99,6 +99,13 @@ h1 {
   margin: 0.25rem 0 0.75rem;
 }
 
+.available-widget .remove-installation {
+  background: transparent;
+  border: 1px solid #b42318;
+  color: #b42318;
+  margin-left: 0.5rem;
+}
+
 .widget-metadata {
   display: grid;
   gap: 0.5rem;
