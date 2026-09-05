@@ -4,10 +4,13 @@
 
 **Blocked by:** 02: Render the Weather Widget as an installed Custom Element.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] The Weather Widget chooses and calls its own weather-data provider using its persisted Widget Configuration.
-- [ ] The Widget presents visible loading, successful-data, settings-validation, and fetch-failure states.
-- [ ] Changing Widget settings updates the Widget's own data request and rendered weather without recreating the Dashboard card.
-- [ ] Tests prove Widget-observable data behavior with controlled provider responses and do not assert Dashboard store or data-gateway internals.
+- [x] The Weather Widget chooses and calls its own weather-data provider using its persisted Widget Configuration.
+- [x] The Widget presents visible loading, successful-data, settings-validation, and fetch-failure states.
+- [x] Changing Widget settings updates the Widget's own data request and rendered weather without recreating the Dashboard card.
+- [x] Tests prove Widget-observable data behavior with controlled provider responses and do not assert Dashboard store or data-gateway internals.
 
+## Comments
+
+- Implemented Widget-owned Open-Meteo geocoding and current-conditions fetching with response validation, explicit loading/validation/error/success states, stale-request protection, and in-place settings updates. Added controlled provider and Widget-observable tests. Dashboard and Weather Widget production builds pass; Karma browser assertions remain unavailable because ChromeHeadless is not installed in this environment.

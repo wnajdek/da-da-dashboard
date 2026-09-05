@@ -7,7 +7,10 @@ import {
   WEATHER_DATA_SOURCE,
   WeatherDataSource,
 } from '../../../projects/weather-widget/src/weather-data.service';
-import type { WeatherConditions } from '../../../projects/weather-widget/src/weather-widget.models';
+import type {
+  WeatherConditions,
+  WeatherConfiguration,
+} from '../../../projects/weather-widget/src/weather-widget.models';
 
 describe('WeatherWidgetComponent', () => {
   let fixture: ComponentFixture<WeatherWidgetComponent>;
@@ -46,6 +49,24 @@ describe('WeatherWidgetComponent', () => {
     });
     expect(fixture.nativeElement.textContent).toContain('21.5°C');
     expect(fixture.nativeElement.textContent).toContain('Humidity 55%');
+  });
+
+  it('shows a settings-validation state without requesting weather for invalid configuration', async () => {
+    const invalidFixture = TestBed.createComponent(WeatherWidgetComponent);
+    invalidFixture.componentRef.setInput('configuration', {
+      location: '  ',
+      units: 'metric',
+    });
+    invalidFixture.detectChanges();
+    await invalidFixture.whenStable();
+    invalidFixture.detectChanges();
+
+    expect(source.read).toHaveBeenCalledTimes(1);
+    expect(invalidFixture.nativeElement.textContent).toContain(
+      'Enter a location.',
+    );
+
+    invalidFixture.destroy();
   });
 
   it('validates its settings and emits a complete replacement configuration', async () => {
@@ -132,6 +153,70 @@ describe('WeatherWidgetComponent', () => {
     fixture.detectChanges();
 
     expect(host.textContent).toContain('Weather data could not be loaded.');
+  });
+
+  it('renders the result for changed settings without recreating the widget', async () => {
+    const host = fixture.nativeElement as HTMLElement;
+    const form = host.querySelector<HTMLFormElement>('form');
+    const location = host.querySelector<HTMLInputElement>('input');
+    const units = host.querySelector<HTMLSelectElement>('select');
+    const component = fixture.componentInstance;
+    const requests: Array<{
+      configuration: WeatherConfiguration;
+      resolve: (conditions: WeatherConditions) => void;
+    }> = [];
+
+    if (form === null || location === null || units === null) {
+      throw new Error('Weather settings form is missing.');
+    }
+
+    source.read.calls.reset();
+    source.read.and.callFake(
+      (configuration: WeatherConfiguration) =>
+        new Promise<WeatherConditions>((resolve) => {
+          requests.push({ configuration, resolve });
+        }),
+    );
+
+    location.value = 'Krakow';
+    location.dispatchEvent(new Event('input', { bubbles: true }));
+    units.value = 'imperial';
+    units.dispatchEvent(new Event('change', { bubbles: true }));
+    form.dispatchEvent(
+      new SubmitEvent('submit', { bubbles: true, cancelable: true }),
+    );
+    fixture.detectChanges();
+
+    expect(requests).toHaveSize(1);
+    expect(requests[0].configuration).toEqual({
+      location: 'Krakow',
+      units: 'imperial',
+    });
+    expect(host.textContent).toContain('Loading current conditions');
+
+    requests[0].resolve({
+      location: 'Krakow',
+      temperature: 68,
+      temperatureUnit: '°F',
+      humidity: 42,
+      weatherCode: 2,
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance).toBe(component);
+    expect(host.textContent).toContain('Krakow');
+    expect(host.textContent).toContain('68°F');
+    expect(host.textContent).toContain('Humidity 42%');
+
+    fixture.componentRef.setInput('configuration', {
+      location: 'Krakow',
+      units: 'imperial',
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(requests).toHaveSize(1);
   });
 
   it('implements the Widget Element configuration property and change-event contract', async () => {

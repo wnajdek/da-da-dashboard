@@ -19,16 +19,17 @@ export const WEATHER_DATA_SOURCE = new InjectionToken<WeatherDataSource>(
 
 const browserWeatherDataSource: WeatherDataSource = {
   async read(configuration): Promise<WeatherConditions> {
-    const location = encodeURIComponent(configuration.location);
+    const requestConfiguration = readRequestConfiguration(configuration);
+    const location = encodeURIComponent(requestConfiguration.location);
     const geocodingResponse = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${location}&count=1&language=en&format=json`,
     );
 
-    if (!geocodingResponse.ok) {
-      throw new Error('Location lookup failed.');
-    }
-
-    const geocoding = (await geocodingResponse.json()) as unknown;
+    const geocoding = await readJson(
+      geocodingResponse,
+      'Location lookup failed.',
+      'Location lookup returned invalid data.',
+    );
     const result = readGeocodingResult(geocoding);
 
     if (result === null) {
@@ -36,16 +37,16 @@ const browserWeatherDataSource: WeatherDataSource = {
     }
 
     const temperatureUnit =
-      configuration.units === 'imperial' ? 'fahrenheit' : 'celsius';
+      requestConfiguration.units === 'imperial' ? 'fahrenheit' : 'celsius';
     const weatherResponse = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${result.latitude}&longitude=${result.longitude}&current=temperature_2m,relative_humidity_2m,weather_code&temperature_unit=${temperatureUnit}`,
     );
 
-    if (!weatherResponse.ok) {
-      throw new Error('Weather lookup failed.');
-    }
-
-    const weather = (await weatherResponse.json()) as unknown;
+    const weather = await readJson(
+      weatherResponse,
+      'Weather lookup failed.',
+      'Weather lookup returned invalid data.',
+    );
     const current = readCurrentConditions(weather);
 
     if (current === null) {
@@ -55,10 +56,45 @@ const browserWeatherDataSource: WeatherDataSource = {
     return {
       location: result.name,
       ...current,
-      temperatureUnit: configuration.units === 'imperial' ? '°F' : '°C',
+      temperatureUnit: requestConfiguration.units === 'imperial' ? '°F' : '°C',
     };
   },
 };
+
+async function readJson(
+  response: Response,
+  requestFailureMessage: string,
+  invalidDataMessage: string,
+): Promise<unknown> {
+  if (!response.ok) {
+    throw new Error(requestFailureMessage);
+  }
+
+  try {
+    return (await response.json()) as unknown;
+  } catch {
+    throw new Error(invalidDataMessage);
+  }
+}
+
+function readRequestConfiguration(
+  configuration: WeatherConfiguration,
+): WeatherConfiguration {
+  const location =
+    typeof configuration.location === 'string'
+      ? configuration.location.trim()
+      : '';
+
+  if (location.length === 0) {
+    throw new Error('Location is required.');
+  }
+
+  if (configuration.units !== 'metric' && configuration.units !== 'imperial') {
+    throw new Error('Weather units are invalid.');
+  }
+
+  return { location, units: configuration.units };
+}
 
 function readGeocodingResult(
   value: unknown,
@@ -71,15 +107,15 @@ function readGeocodingResult(
 
   if (
     !isRecord(first) ||
-    typeof first['name'] !== 'string' ||
-    !isFiniteNumber(first['latitude']) ||
-    !isFiniteNumber(first['longitude'])
+    !isNonEmptyString(first['name']) ||
+    !isLatitude(first['latitude']) ||
+    !isLongitude(first['longitude'])
   ) {
     return null;
   }
 
   return {
-    name: first['name'],
+    name: first['name'].trim(),
     latitude: first['latitude'],
     longitude: first['longitude'],
   };
@@ -96,8 +132,8 @@ function readCurrentConditions(
 
   if (
     !isFiniteNumber(current['temperature_2m']) ||
-    !isFiniteNumber(current['relative_humidity_2m']) ||
-    !isFiniteNumber(current['weather_code'])
+    !isPercentage(current['relative_humidity_2m']) ||
+    !isWeatherCode(current['weather_code'])
   ) {
     return null;
   }
@@ -111,4 +147,29 @@ function readCurrentConditions(
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isLatitude(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= -90 && value <= 90;
+}
+
+function isLongitude(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= -180 && value <= 180;
+}
+
+function isPercentage(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= 0 && value <= 100;
+}
+
+function isWeatherCode(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= 99
+  );
 }

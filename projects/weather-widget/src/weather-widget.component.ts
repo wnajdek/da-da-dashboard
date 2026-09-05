@@ -56,8 +56,12 @@ const DEFAULT_CONFIGURATION: WeatherConfiguration = {
       <section class="conditions" aria-live="polite">
         @if (weatherState() === 'loading') {
           <p class="status">Loading current conditions…</p>
+        } @else if (weatherState() === 'invalid') {
+          <p class="status status--validation" role="alert">
+            {{ validationMessage() ?? 'Enter valid settings to load weather.' }}
+          </p>
         } @else if (weatherState() === 'error') {
-          <p class="status status--error">
+          <p class="status status--error" role="alert">
             Weather data could not be loaded. Check the location and try again.
           </p>
         } @else if (conditions(); as current) {
@@ -173,6 +177,9 @@ const DEFAULT_CONFIGURATION: WeatherConfiguration = {
     .validation {
       color: #b42318;
     }
+    .status--validation {
+      color: #b54708;
+    }
     .temperature {
       margin-bottom: 0.1rem;
       color: #075b67;
@@ -200,18 +207,25 @@ export class WeatherWidgetComponent {
     DEFAULT_CONFIGURATION.units,
   );
   protected readonly validationMessage = signal<string | null>(null);
-  protected readonly weatherState = signal<'loading' | 'ready' | 'error'>(
-    'loading',
-  );
+  protected readonly weatherState = signal<
+    'loading' | 'ready' | 'invalid' | 'error'
+  >('loading');
   protected readonly conditions = signal<WeatherConditions | null>(null);
   readonly #weatherData = inject(WEATHER_DATA_SOURCE);
   readonly #hostElement = inject(ElementRef<HTMLElement>);
   #requestRevision = 0;
+  #lastRequestedConfiguration: WeatherConfiguration | null = null;
 
   constructor() {
     effect(() => {
-      const configuration = readConfiguration(this.configuration());
-      this.#applyConfiguration(configuration);
+      const result = readConfiguration(this.configuration());
+
+      if (result.status === 'invalid') {
+        this.#showInvalidConfiguration(result);
+        return;
+      }
+
+      this.#applyConfiguration(result.configuration);
     });
   }
 
@@ -237,13 +251,17 @@ export class WeatherWidgetComponent {
     const units = this.draftUnits();
 
     if (location.length === 0) {
-      this.validationMessage.set('Enter a location.');
+      this.#showInvalidConfiguration({
+        status: 'invalid',
+        location,
+        units,
+        message: 'Enter a location.',
+      });
       return;
     }
 
     const configuration: WeatherConfiguration = { location, units };
-    this.validationMessage.set(null);
-    this.#applyConfiguration(configuration);
+    this.#applyConfiguration(configuration, true);
     this.#hostElement.nativeElement.dispatchEvent(
       new CustomEvent('configuration-changed', {
         bubbles: true,
@@ -252,48 +270,121 @@ export class WeatherWidgetComponent {
     );
   }
 
-  #applyConfiguration(configuration: WeatherConfiguration): void {
+  #applyConfiguration(
+    configuration: WeatherConfiguration,
+    force = false,
+  ): void {
+    if (
+      !force &&
+      this.#lastRequestedConfiguration !== null &&
+      areConfigurationsEqual(configuration, this.#lastRequestedConfiguration)
+    ) {
+      return;
+    }
+
+    this.#lastRequestedConfiguration = configuration;
     this.draftLocation.set(configuration.location);
     this.draftUnits.set(configuration.units);
+    this.validationMessage.set(null);
+    this.conditions.set(null);
     this.weatherState.set('loading');
-    const request = ++this.#requestRevision;
+    const revision = ++this.#requestRevision;
+    let weatherRequest: Promise<WeatherConditions>;
 
-    void this.#weatherData.read(configuration).then(
+    try {
+      weatherRequest = this.#weatherData.read(configuration);
+    } catch {
+      if (revision === this.#requestRevision) {
+        this.weatherState.set('error');
+      }
+      return;
+    }
+
+    void Promise.resolve(weatherRequest).then(
       (conditions) => {
-        if (request === this.#requestRevision) {
+        if (revision === this.#requestRevision) {
           this.conditions.set(conditions);
           this.weatherState.set('ready');
         }
       },
       () => {
-        if (request === this.#requestRevision) {
+        if (revision === this.#requestRevision) {
           this.conditions.set(null);
           this.weatherState.set('error');
         }
       },
     );
   }
+
+  #showInvalidConfiguration(result: InvalidConfiguration): void {
+    this.#requestRevision += 1;
+    this.#lastRequestedConfiguration = null;
+    this.draftLocation.set(result.location);
+    this.draftUnits.set(result.units);
+    this.validationMessage.set(result.message);
+    this.conditions.set(null);
+    this.weatherState.set('invalid');
+  }
 }
 
-function readConfiguration(value: unknown): WeatherConfiguration {
-  if (!isRecord(value)) {
-    return DEFAULT_CONFIGURATION;
-  }
+type ConfigurationReadResult =
+  | { readonly status: 'valid'; readonly configuration: WeatherConfiguration }
+  | InvalidConfiguration;
 
-  if (
-    typeof value['location'] === 'string' &&
-    isUnits(value['units']) &&
-    value['location'].trim().length > 0
-  ) {
+interface InvalidConfiguration {
+  readonly status: 'invalid';
+  readonly location: string;
+  readonly units: WeatherUnits;
+  readonly message: string;
+}
+
+function readConfiguration(value: unknown): ConfigurationReadResult {
+  if (!isRecord(value)) {
     return {
-      location: value['location'].trim(),
-      units: value['units'],
+      status: 'invalid',
+      location: DEFAULT_CONFIGURATION.location,
+      units: DEFAULT_CONFIGURATION.units,
+      message: 'Enter a valid location and choose a unit.',
     };
   }
 
-  return DEFAULT_CONFIGURATION;
+  const location =
+    typeof value['location'] === 'string' ? value['location'].trim() : '';
+  const units = isUnits(value['units'])
+    ? value['units']
+    : DEFAULT_CONFIGURATION.units;
+
+  if (location.length === 0) {
+    return {
+      status: 'invalid',
+      location,
+      units,
+      message: 'Enter a location.',
+    };
+  }
+
+  if (!isUnits(value['units'])) {
+    return {
+      status: 'invalid',
+      location,
+      units,
+      message: 'Choose Celsius or Fahrenheit.',
+    };
+  }
+
+  return {
+    status: 'valid',
+    configuration: { location, units },
+  };
 }
 
 function isUnits(value: unknown): value is WeatherUnits {
   return value === 'metric' || value === 'imperial';
+}
+
+function areConfigurationsEqual(
+  left: WeatherConfiguration,
+  right: WeatherConfiguration,
+): boolean {
+  return left.location === right.location && left.units === right.units;
 }
