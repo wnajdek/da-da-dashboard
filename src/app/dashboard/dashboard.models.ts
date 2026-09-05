@@ -1,4 +1,4 @@
-import type { JsonObject } from './json-value';
+import { isRecord, type JsonObject } from './json-value';
 
 export type { JsonObject, JsonValue } from './json-value';
 
@@ -11,6 +11,26 @@ export interface GridLayout {
   readonly y: number;
   readonly w: number;
   readonly h: number;
+}
+
+export function isValidGridLayout(value: unknown): value is GridLayout {
+  return (
+    isRecord(value) &&
+    isNonNegativeFiniteNumber(value['x']) &&
+    isNonNegativeFiniteNumber(value['y']) &&
+    isPositiveFiniteNumber(value['w']) &&
+    isPositiveFiniteNumber(value['h'])
+  );
+}
+
+export function isValidGridLayoutSize(
+  value: unknown,
+): value is Pick<GridLayout, 'w' | 'h'> {
+  return (
+    isRecord(value) &&
+    isPositiveFiniteNumber(value['w']) &&
+    isPositiveFiniteNumber(value['h'])
+  );
 }
 
 export interface WidgetLayoutChange {
@@ -40,4 +60,12 @@ export interface Dashboard {
   readonly id: string;
   readonly title: string;
   readonly widgets: readonly WidgetInstance[];
+}
+
+function isNonNegativeFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function isPositiveFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }

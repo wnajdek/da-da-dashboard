@@ -1,5 +1,9 @@
 import { inject, Injectable, InjectionToken } from '@angular/core';
-import type { Dashboard, WidgetInstance } from './dashboard.models';
+import {
+  isValidGridLayout,
+  type Dashboard,
+  type WidgetInstance,
+} from './dashboard.models';
 import { isJsonObject, isRecord } from './json-value';
 
 export const DASHBOARD_STORAGE_KEY = 'configurable-dashboard.snapshot';
@@ -65,6 +69,10 @@ export class DashboardPersistenceService {
   }
 
   save(dashboard: Dashboard): boolean {
+    if (!isDashboard(dashboard)) {
+      return false;
+    }
+
     const snapshot: DashboardSnapshotV1 = { schemaVersion: 1, dashboard };
 
     try {
@@ -92,23 +100,13 @@ function isWidgetInstance(value: unknown): value is WidgetInstance {
   if (
     !isRecord(value) ||
     !isUuid(value['id']) ||
-    !isGridLayout(value['layout']) ||
+    !isValidGridLayout(value['layout']) ||
     !isJsonObject(value['configuration'])
   ) {
     return false;
   }
 
   return typeof value['type'] === 'string' && value['type'].length > 0;
-}
-
-function isGridLayout(value: unknown): boolean {
-  return (
-    isRecord(value) &&
-    isNonNegativeFiniteNumber(value['x']) &&
-    isNonNegativeFiniteNumber(value['y']) &&
-    isPositiveFiniteNumber(value['w']) &&
-    isPositiveFiniteNumber(value['h'])
-  );
 }
 
 function isUuid(value: unknown): boolean {
@@ -118,12 +116,4 @@ function isUuid(value: unknown): boolean {
       value,
     )
   );
-}
-
-function isNonNegativeFiniteNumber(value: unknown): boolean {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
-}
-
-function isPositiveFiniteNumber(value: unknown): boolean {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }

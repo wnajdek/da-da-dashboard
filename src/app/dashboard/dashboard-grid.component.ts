@@ -37,6 +37,7 @@ import { WidgetRuntimeService } from './widget-runtime.service';
     >
       @for (widget of dashboard().widgets; track widget.id) {
         @let gridWidget = gridStackWidget(widget);
+        @let installation = installationFor(widget.type);
         <section
           class="grid-stack-item"
           [attr.gs-id]="gridWidget.id"
@@ -46,9 +47,9 @@ import { WidgetRuntimeService } from './widget-runtime.service';
           [attr.gs-h]="gridWidget.h"
         >
           <div class="grid-stack-item-content">
-            @if (installationFor(widget.type); as installation) {
+            @if (installation; as resolvedInstallation) {
               <app-widget-element
-                [installation]="installation"
+                [installation]="resolvedInstallation"
                 [widgetId]="widget.id"
                 [configuration]="widget.configuration"
                 (changed)="widgetConfigurationChanged.emit($event)"
@@ -61,6 +62,27 @@ import { WidgetRuntimeService } from './widget-runtime.service';
                 (removed)="widgetRemoved.emit(widget.id)"
               />
             }
+            <div class="widget-controls">
+              <button
+                type="button"
+                class="widget-drag-handle"
+                data-testid="move-widget-instance"
+                aria-label="Move widget"
+              >
+                Move
+              </button>
+              @if (installation) {
+                <button
+                  type="button"
+                  class="remove-widget"
+                  data-testid="remove-widget-instance"
+                  aria-label="Remove widget"
+                  (click)="widgetRemoved.emit(widget.id)"
+                >
+                  Remove widget
+                </button>
+              }
+            </div>
           </div>
         </section>
       }
@@ -97,6 +119,7 @@ export class DashboardGridComponent implements AfterViewInit {
         column: 12,
         cellHeight: 96,
         margin: 8,
+        handle: '.widget-drag-handle',
       },
       this.gridElement().nativeElement,
     );
@@ -132,9 +155,10 @@ export class DashboardGridComponent implements AfterViewInit {
       return;
     }
 
-    const widgetIds = new Set(
-      this.dashboard().widgets.map((widget) => widget.id),
+    const widgetsById = new Map(
+      this.dashboard().widgets.map((widget) => [widget.id, widget]),
     );
+    const widgetIds = new Set(widgetsById.keys());
 
     for (const node of [...grid.engine.nodes]) {
       if (typeof node.id === 'string' && !widgetIds.has(node.id) && node.el) {
@@ -150,11 +174,21 @@ export class DashboardGridComponent implements AfterViewInit {
 
     for (const item of items) {
       const node = item.gridstackNode;
+      const id =
+        node?.id === undefined ? item.getAttribute('gs-id') : String(node.id);
+      const widget = id === null ? undefined : widgetsById.get(id);
 
-      if (node?.id !== undefined && !widgetIds.has(String(node.id))) {
+      if (widget === undefined && node !== undefined) {
         grid.removeWidget(item, false);
       } else if (node === undefined) {
-        grid.makeWidget(item);
+        if (widget !== undefined) {
+          grid.makeWidget(
+            item,
+            GridStackLayoutAdapter.toGridStackWidget(widget),
+          );
+        }
+      } else if (widget !== undefined) {
+        grid.update(item, GridStackLayoutAdapter.toGridStackWidget(widget));
       }
     }
   }

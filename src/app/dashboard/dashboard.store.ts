@@ -1,6 +1,8 @@
 import { computed, Injectable, Signal, signal } from '@angular/core';
 import {
   Dashboard,
+  isValidGridLayout,
+  isValidGridLayoutSize,
   WidgetConfigurationChange,
   WidgetCreation,
   WidgetInstance,
@@ -8,7 +10,7 @@ import {
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
-import { isJsonObject } from './json-value';
+import { isJsonObject, isRecord } from './json-value';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
 
@@ -48,13 +50,14 @@ export class DashboardStore {
   }
 
   resetToDefaults(): void {
+    this.#clearPendingWidgetRemoval();
     this.#loadSeedDashboard();
   }
 
   addWidget(creation: WidgetCreation): void {
     const dashboard = this.#dashboard();
 
-    if (dashboard === null || !isJsonObject(creation.configuration)) {
+    if (dashboard === null || !isWidgetCreation(creation)) {
       return;
     }
 
@@ -82,7 +85,7 @@ export class DashboardStore {
   updateWidgetConfiguration(change: WidgetConfigurationChange): void {
     const dashboard = this.#dashboard();
 
-    if (dashboard === null || !isJsonObject(change.configuration)) {
+    if (dashboard === null || !isWidgetConfigurationChange(change)) {
       return;
     }
 
@@ -171,18 +174,26 @@ export class DashboardStore {
     }
 
     const layoutsByWidgetId = new Map(
-      changes.map((change) => [change.id, change.layout]),
+      changes
+        .filter(isWidgetLayoutChange)
+        .map((change) => [change.id, change.layout]),
     );
+    let changed = false;
     const updatedDashboard: Dashboard = {
       ...dashboard,
       widgets: dashboard.widgets.map((widget) => {
         const layout = layoutsByWidgetId.get(widget.id);
 
-        return layout === undefined ? widget : { ...widget, layout };
+        if (layout === undefined || areLayoutsEqual(widget.layout, layout)) {
+          return widget;
+        }
+
+        changed = true;
+        return { ...widget, layout };
       }),
     };
 
-    if (this.persistence.save(updatedDashboard)) {
+    if (changed && this.persistence.save(updatedDashboard)) {
       this.#dashboard.set(updatedDashboard);
     }
   }
@@ -215,4 +226,44 @@ export class DashboardStore {
       0,
     );
   }
+}
+
+function isWidgetCreation(value: unknown): value is WidgetCreation {
+  return (
+    isRecord(value) &&
+    typeof value['type'] === 'string' &&
+    value['type'].length > 0 &&
+    isJsonObject(value['configuration']) &&
+    isValidGridLayoutSize(value['preferredLayout'])
+  );
+}
+
+function isWidgetConfigurationChange(
+  value: unknown,
+): value is WidgetConfigurationChange {
+  return (
+    isRecord(value) &&
+    typeof value['id'] === 'string' &&
+    isJsonObject(value['configuration'])
+  );
+}
+
+function isWidgetLayoutChange(value: unknown): value is WidgetLayoutChange {
+  return (
+    isRecord(value) &&
+    typeof value['id'] === 'string' &&
+    isValidGridLayout(value['layout'])
+  );
+}
+
+function areLayoutsEqual(
+  left: WidgetInstance['layout'],
+  right: WidgetInstance['layout'],
+): boolean {
+  return (
+    left.x === right.x &&
+    left.y === right.y &&
+    left.w === right.w &&
+    left.h === right.h
+  );
 }

@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   TRUSTED_MANIFEST_ORIGINS,
@@ -129,6 +130,7 @@ function configure(
 ): void {
   TestBed.configureTestingModule({
     providers: [
+      provideZonelessChangeDetection(),
       { provide: DASHBOARD_STORAGE, useValue: storage },
       { provide: TRUSTED_MANIFEST_ORIGINS, useValue: trustedOrigins },
       { provide: WIDGET_ENTRY_BUNDLE_LOADER, useValue: loader },

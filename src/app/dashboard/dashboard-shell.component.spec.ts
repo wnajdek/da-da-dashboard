@@ -1,6 +1,13 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import {
+  ApplicationRef,
+  EnvironmentInjector,
+  createComponent,
+  createEnvironmentInjector,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { createApplication } from '@angular/platform-browser';
+import { GridItemHTMLElement, GridStack } from 'gridstack';
 import { DashboardShellComponent } from './dashboard-shell.component';
 import {
   DASHBOARD_STORAGE,
@@ -57,6 +64,13 @@ const MISMATCHED_ELEMENT_MANIFEST = {
   displayName: 'Missing Element Widget',
   elementTag: 'task-four-missing-widget',
   entryBundleUrl: './missing.js',
+};
+const CONTINUITY_MANIFEST = {
+  ...VALID_MANIFEST,
+  type: 'continuity-widget',
+  displayName: 'Continuity Widget',
+  elementTag: 'continuity-widget-element',
+  entryBundleUrl: './continuity.js',
 };
 
 describe('DashboardShellComponent', () => {
@@ -343,6 +357,48 @@ describe('DashboardShellComponent', () => {
     expect(
       host.querySelectorAll('[data-testid="available-widget"]'),
     ).toHaveSize(1);
+    expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(0);
+    expectEmptyDashboardSnapshot(storage);
+  });
+
+  it('keeps a legacy built-in Widget Instance as unavailable until an explicit reset', async () => {
+    const storage = new MemoryStorage();
+    const legacyDashboard = {
+      id: 'e25b6b77-2b4e-4d7e-91df-51feded26e83',
+      title: 'Migrated dashboard',
+      widgets: [
+        {
+          id: 'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11',
+          type: 'kpi',
+          layout: { x: 1, y: 2, w: 3, h: 2 },
+          configuration: {
+            title: 'Monthly revenue',
+            dataSource: 'monthly-revenue',
+            displayFormat: 'currency',
+          },
+        },
+      ],
+    };
+    const savedSnapshot = JSON.stringify({
+      schemaVersion: 1,
+      dashboard: legacyDashboard,
+    });
+    storage.setItem(DASHBOARD_STORAGE_KEY, savedSnapshot);
+    const fixture = await createShellFixture(storage, {
+      load: jasmine.createSpy('load'),
+    });
+    const host = getHost(fixture);
+
+    expect(
+      host.querySelectorAll('[data-testid="unavailable-widget"]'),
+    ).toHaveSize(1);
+    expect(host.textContent).toContain('Monthly revenue');
+    expect(storage.getItem(DASHBOARD_STORAGE_KEY)).toBe(savedSnapshot);
+
+    TestBed.inject(DashboardStore).resetToDefaults();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
     expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(0);
     expectEmptyDashboardSnapshot(storage);
   });
@@ -728,7 +784,7 @@ describe('DashboardShellComponent', () => {
     expect(JSON.stringify(widgetElement?.configuration)).toBe(
       '{"location":"Warsaw","units":"metric"}',
     );
-    await waitForWeatherWidgetElement();
+    await waitForWidgetElement();
 
     const location = widgetElement?.querySelector<HTMLInputElement>('input');
     const form = widgetElement?.querySelector<HTMLFormElement>('form');
@@ -749,7 +805,7 @@ describe('DashboardShellComponent', () => {
     );
     await fixture.whenStable();
     fixture.detectChanges();
-    await waitForWeatherWidgetElement();
+    await waitForWidgetElement();
 
     const updatedConfiguration: WidgetConfiguration = {
       location: 'Kraków',
@@ -769,6 +825,176 @@ describe('DashboardShellComponent', () => {
       JSON.stringify(reloadedStore.dashboard()?.widgets[0].configuration),
     ).toBe('{"location":"Kraków","units":"metric"}');
     weatherApplication.destroy();
+  });
+
+  it('keeps runtime Widget configuration and layout through removal, undo, and reload', async () => {
+    const storage = new MemoryStorage();
+    const source: WidgetManifestSource = {
+      load: jasmine.createSpy('load').and.resolveTo(CONTINUITY_MANIFEST),
+    };
+    const loader: WidgetEntryBundleLoader = {
+      load: jasmine.createSpy('load').and.callFake(async () => {
+        if (customElements.get(CONTINUITY_MANIFEST.elementTag) === undefined) {
+          customElements.define(
+            CONTINUITY_MANIFEST.elementTag,
+            class extends HTMLElement {
+              configuration: WidgetConfiguration = {};
+
+              connectedCallback(): void {
+                this.textContent = 'Continuity Widget';
+              }
+            },
+          );
+        }
+      }),
+    };
+    const fixture = await createShellFixture(
+      storage,
+      source,
+      [TRUSTED_ORIGIN],
+      loader,
+    );
+
+    submitManifest(fixture, MANIFEST_URL);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const host = getHost(fixture);
+    host
+      .querySelector<HTMLButtonElement>('[data-testid="add-widget"]')
+      ?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await waitForWidgetElement();
+    fixture.detectChanges();
+
+    const widgetElement = host.querySelector<HTMLElement>(
+      `[data-testid="widget-element-host"] ${CONTINUITY_MANIFEST.elementTag}`,
+    );
+    const gridElement = host.querySelector<
+      HTMLElement & { gridstack?: GridStack }
+    >('.grid-stack');
+    const item = host.querySelector<GridItemHTMLElement>('.grid-stack-item');
+    const grid = gridElement?.gridstack;
+
+    if (widgetElement === null || item === null || grid === undefined) {
+      throw new Error('The runtime Widget grid was not initialized.');
+    }
+
+    const originalViewportWidth = window.innerWidth;
+    setViewportWidth(1024);
+    fixture.detectChanges();
+
+    widgetElement.dispatchEvent(
+      new CustomEvent('configuration-changed', {
+        bubbles: true,
+        detail: { location: 'Kraków', units: 'metric' },
+      }),
+    );
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    dragGridItem(item, grid, { x: 3, y: 0 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    resizeGridItem(item, grid, { w: 6, h: 4 });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const widgetId = JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!)
+      .dashboard.widgets[0].id;
+    const savedWidget = JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!)
+      .dashboard.widgets[0];
+
+    expect(savedWidget).toEqual({
+      id: widgetId,
+      type: CONTINUITY_MANIFEST.type,
+      layout: { x: 3, y: 0, w: 6, h: 4 },
+      configuration: { location: 'Kraków', units: 'metric' },
+    });
+    expect(
+      host.querySelector('[data-testid="move-widget-instance"]'),
+    ).not.toBeNull();
+
+    host
+      .querySelector<HTMLButtonElement>(
+        '[data-testid="remove-widget-instance"]',
+      )
+      ?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(0);
+    expect(host.querySelector('[data-testid="undo-removal"]')).not.toBeNull();
+
+    host
+      .querySelector<HTMLButtonElement>('[data-testid="undo-removal"]')
+      ?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(1);
+    expect(
+      JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!).dashboard.widgets[0],
+    ).toEqual(savedWidget);
+
+    fixture.destroy();
+
+    const parentInjector = TestBed.inject(EnvironmentInjector);
+    const reloadedInjector = createEnvironmentInjector(
+      [
+        {
+          provide: DashboardStore,
+          useFactory: () =>
+            new DashboardStore(TestBed.inject(DashboardPersistenceService)),
+        },
+      ],
+      parentInjector,
+      'Dashboard shell reload test',
+    );
+    const applicationRef = TestBed.inject(ApplicationRef);
+    const reloadedHost = document.createElement('div');
+    const reloadedComponent = createComponent(DashboardShellComponent, {
+      environmentInjector: reloadedInjector,
+      hostElement: reloadedHost,
+    });
+    document.body.append(reloadedHost);
+    applicationRef.attachView(reloadedComponent.hostView);
+
+    try {
+      reloadedComponent.changeDetectorRef.detectChanges();
+      await waitForWidgetElement();
+      reloadedComponent.changeDetectorRef.detectChanges();
+      await waitForWidgetElement();
+      reloadedComponent.changeDetectorRef.detectChanges();
+
+      const reloadedWidgetElement = reloadedHost.querySelector<
+        HTMLElement & { configuration: WidgetConfiguration }
+      >(
+        `[data-testid="widget-element-host"] ${CONTINUITY_MANIFEST.elementTag}`,
+      );
+      const reloadedItem =
+        reloadedHost.querySelector<GridItemHTMLElement>('.grid-stack-item');
+      const reloadedGrid = reloadedHost.querySelector<
+        HTMLElement & { gridstack?: GridStack }
+      >('.grid-stack')?.gridstack;
+
+      expect(reloadedWidgetElement).not.toBeNull();
+      expect(reloadedItem?.gridstackNode).toEqual(
+        jasmine.objectContaining({ x: 3, y: 0, w: 6, h: 4 }),
+      );
+      expect(reloadedGrid?.engine.nodes).toEqual([
+        jasmine.objectContaining({ id: widgetId, x: 3, y: 0, w: 6, h: 4 }),
+      ]);
+      expect(JSON.stringify(reloadedWidgetElement?.configuration)).toBe(
+        JSON.stringify(savedWidget.configuration),
+      );
+    } finally {
+      applicationRef.detachView(reloadedComponent.hostView);
+      reloadedComponent.destroy();
+      reloadedInjector.destroy();
+      reloadedHost.remove();
+      setViewportWidth(originalViewportWidth);
+    }
   });
 });
 
@@ -836,6 +1062,96 @@ function expectEmptyDashboardSnapshot(storage: MemoryStorage): void {
   });
 }
 
-function waitForWeatherWidgetElement(): Promise<void> {
+function waitForWidgetElement(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve));
+}
+
+function dragGridItem(
+  item: GridItemHTMLElement,
+  grid: GridStack,
+  target: { readonly x: number; readonly y: number },
+): void {
+  const handle = item.querySelector<HTMLElement>('.widget-drag-handle');
+
+  if (handle === null) {
+    throw new Error('The Widget drag handle is missing.');
+  }
+
+  const rect = handle.getBoundingClientRect();
+  const start = {
+    x: (rect.left + rect.right) / 2,
+    y: (rect.top + rect.bottom) / 2,
+  };
+  const end = {
+    x: start.x + target.x * grid.cellWidth(),
+    y: start.y + target.y * grid.getCellHeight(true),
+  };
+
+  dispatchMouseEvent(handle, 'mousedown', start);
+  dispatchMouseEvent(document, 'mousemove', {
+    x: start.x + 4,
+    y: start.y + 4,
+  });
+  dispatchMouseEvent(document, 'mousemove', end);
+  dispatchMouseEvent(document, 'mouseup', end);
+}
+
+function resizeGridItem(
+  item: GridItemHTMLElement,
+  grid: GridStack,
+  target: { readonly w: number; readonly h: number },
+): void {
+  const handle = item.querySelector<HTMLElement>('.ui-resizable-se');
+
+  if (handle === null) {
+    throw new Error('The Widget resize handle is missing.');
+  }
+
+  const rect = handle.getBoundingClientRect();
+  const start = {
+    x: (rect.left + rect.right) / 2,
+    y: (rect.top + rect.bottom) / 2,
+  };
+  const node = item.gridstackNode;
+
+  if (node === undefined || node.w === undefined || node.h === undefined) {
+    throw new Error('The GridStack Widget node is missing its size.');
+  }
+
+  const end = {
+    x: start.x + (target.w - node.w) * grid.cellWidth(),
+    y: start.y + (target.h - node.h) * grid.getCellHeight(true),
+  };
+
+  dispatchMouseEvent(handle, 'mousedown', start);
+  dispatchMouseEvent(document, 'mousemove', {
+    x: start.x + 4,
+    y: start.y + 4,
+  });
+  dispatchMouseEvent(document, 'mousemove', end);
+  dispatchMouseEvent(document, 'mouseup', end);
+}
+
+function dispatchMouseEvent(
+  target: EventTarget,
+  type: 'mousedown' | 'mousemove' | 'mouseup',
+  position: { readonly x: number; readonly y: number },
+): void {
+  target.dispatchEvent(
+    new MouseEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      clientX: position.x,
+      clientY: position.y,
+    }),
+  );
+}
+
+function setViewportWidth(width: number): void {
+  Object.defineProperty(window, 'innerWidth', {
+    configurable: true,
+    value: width,
+  });
+  window.dispatchEvent(new Event('resize'));
 }

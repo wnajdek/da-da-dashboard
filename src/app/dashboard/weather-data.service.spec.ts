@@ -1,7 +1,14 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { WEATHER_DATA_SOURCE } from '../../../projects/weather-widget/src/weather-data.service';
 
 describe('WeatherDataSource', () => {
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [provideZonelessChangeDetection()],
+    });
+  });
+
   it('resolves a location and reads current conditions from the weather provider', async () => {
     const fetchSpy = spyOn(window, 'fetch').and.returnValues(
       Promise.resolve(

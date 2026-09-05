@@ -2,6 +2,10 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.1.5.
 
+The Dashboard architecture, runtime Widget contract, Weather Widget example,
+publishing flow, persistence model, and verification playbook are documented in
+[`docs/dashboard-architecture.md`](docs/dashboard-architecture.md).
+
 ## Development server
 
 To start a local development server, run:
@@ -28,31 +32,30 @@ ng generate --help
 
 ## Building
 
-To build the project run:
+Build the Dashboard host with:
 
 ```bash
-ng build
+npx ng build da-da-dashboard --configuration production
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+Build the separately deployed reference Weather Widget with:
+
+```bash
+npx ng build weather-widget --configuration production
+```
+
+The production artifacts are written to `dist/da-da-dashboard/` and
+`dist/weather-widget/`. The Widget manifest and entry bundle must be published
+from an origin configured in the Dashboard's Trusted Manifest Origin allowlist.
 
 ## Running unit tests
 
 To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
 
 ```bash
-ng test
+CHROME_BIN="${CHROME_BIN:-/usr/bin/brave-browser}" \
+npx ng test --no-watch --browsers=ChromeHeadless
 ```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
 ## Additional Resources
 

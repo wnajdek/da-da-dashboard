@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   WIDGET_INSTALLATIONS_STORAGE,
@@ -19,6 +20,7 @@ describe('WidgetInstallationPersistenceService', () => {
     storage = new MemoryStorage();
     TestBed.configureTestingModule({
       providers: [
+        provideZonelessChangeDetection(),
         { provide: DASHBOARD_STORAGE, useValue: storage },
         { provide: WIDGET_INSTALLATIONS_STORAGE, useValue: storage },
       ],
@@ -64,7 +66,7 @@ describe('WidgetInstallationPersistenceService', () => {
           type: 'weather',
           displayName: 'Weather',
           version: '1.0.0',
-          elementTag: 'not-a-custom-element',
+          elementTag: 'notacustomelement',
           entryBundleUrl: 'https://widgets.example.test/weather/entry.js',
           defaultConfiguration: {},
           preferredLayout: { w: 4, h: 3 },

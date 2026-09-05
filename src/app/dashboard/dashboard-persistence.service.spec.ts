@@ -1,3 +1,4 @@
+import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import {
   DASHBOARD_STORAGE,
@@ -13,7 +14,10 @@ describe('DashboardPersistenceService', () => {
   beforeEach(() => {
     storage = new MemoryStorage();
     TestBed.configureTestingModule({
-      providers: [{ provide: DASHBOARD_STORAGE, useValue: storage }],
+      providers: [
+        provideZonelessChangeDetection(),
+        { provide: DASHBOARD_STORAGE, useValue: storage },
+      ],
     });
     service = TestBed.inject(DashboardPersistenceService);
   });
