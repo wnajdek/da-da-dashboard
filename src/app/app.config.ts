@@ -14,6 +14,9 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes),
     // Operator-owned configuration. An empty list fails closed until trusted origins are set.
-    provideTrustedManifestOrigins([]),
+    provideTrustedManifestOrigins([
+      'http://localhost:4200',
+      'http://localhost:4201',
+    ]),
   ],
 };
