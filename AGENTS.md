@@ -18,3 +18,9 @@ npx ng test --no-watch --browsers=ChromeHeadless
 
 If ChromeHeadless cannot launch, verify CHROME_BIN and the Brave executable
 before concluding that browser tests cannot be run.
+
+## TypeScript conventions
+
+Use the TypeScript `private` keyword for private fields, methods, and accessors.
+Do not use ECMAScript `#` private members. Use `protected` for Angular component
+members that are referenced only by the component template.
