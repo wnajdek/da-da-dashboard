@@ -863,12 +863,14 @@ describe('DashboardShellComponent', () => {
     setViewportWidth(1024);
     fixture.detectChanges();
 
+    const changedConfiguration = { location: 'Kraków', units: 'metric' };
     widgetElement.dispatchEvent(
       new CustomEvent('configuration-changed', {
         bubbles: true,
-        detail: { location: 'Kraków', units: 'metric' },
+        detail: changedConfiguration,
       }),
     );
+    changedConfiguration.location = 'Changed after dispatch';
     await fixture.whenStable();
     fixture.detectChanges();
 

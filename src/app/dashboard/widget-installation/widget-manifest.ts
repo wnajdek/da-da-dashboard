@@ -3,7 +3,7 @@ import type {
   WidgetConfiguration,
   WidgetType,
 } from '../workspace/dashboard.models';
-import { isJsonObject, isRecord } from '../workspace/json-value';
+import { decodeJsonObject, isRecord } from '../workspace/json-value';
 
 export const SUPPORTED_WIDGET_MANIFEST_VERSION = 1 as const;
 
@@ -56,6 +56,8 @@ export function validateWidgetManifest(
   const defaultConfiguration = value['defaultConfiguration'];
   const preferredLayout = value['preferredLayout'];
 
+  const decodedConfiguration = decodeJsonObject(defaultConfiguration);
+
   if (
     !isStableWidgetType(type) ||
     !isNonEmptyString(displayName) ||
@@ -63,7 +65,7 @@ export function validateWidgetManifest(
     !isNonEmptyString(version) ||
     !isCustomElementTag(elementTag) ||
     !isNonEmptyString(entryBundleUrl) ||
-    !isJsonObject(defaultConfiguration) ||
+    decodedConfiguration === null ||
     !isPreferredLayout(preferredLayout)
   ) {
     return { status: 'invalid', reason: 'invalid' };
@@ -88,7 +90,7 @@ export function validateWidgetManifest(
       version: version.trim(),
       elementTag,
       entryBundleUrl: resolvedEntryBundleUrl,
-      defaultConfiguration,
+      defaultConfiguration: decodedConfiguration,
       preferredLayout: {
         w: preferredLayout.w,
         h: preferredLayout.h,

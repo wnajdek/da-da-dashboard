@@ -10,7 +10,7 @@ import {
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
-import { isJsonObject, isRecord } from './json-value';
+import { decodeJsonObject, isRecord } from './json-value';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
 
@@ -60,19 +60,21 @@ export class DashboardStore {
   addWidget(creation: WidgetCreation): void {
     const dashboard = this.dashboardState();
 
-    if (dashboard === null || !isWidgetCreation(creation)) {
+    const decodedCreation = decodeWidgetCreation(creation);
+
+    if (dashboard === null || decodedCreation === null) {
       return;
     }
 
     const widget: WidgetInstance = {
       id: crypto.randomUUID(),
-      type: creation.type,
-      configuration: creation.configuration,
+      type: decodedCreation.type,
+      configuration: decodedCreation.configuration,
       layout: {
         x: 0,
         y: this.nextWidgetY(dashboard),
-        w: creation.preferredLayout.w,
-        h: creation.preferredLayout.h,
+        w: decodedCreation.preferredLayout.w,
+        h: decodedCreation.preferredLayout.h,
       },
     };
     const updatedDashboard: Dashboard = {
@@ -88,12 +90,14 @@ export class DashboardStore {
   updateWidgetConfiguration(change: WidgetConfigurationChange): void {
     const dashboard = this.dashboardState();
 
-    if (dashboard === null || !isWidgetConfigurationChange(change)) {
+    const decodedChange = decodeWidgetConfigurationChange(change);
+
+    if (dashboard === null || decodedChange === null) {
       return;
     }
 
     const widget = dashboard.widgets.find(
-      (candidate) => candidate.id === change.id,
+      (candidate) => candidate.id === decodedChange.id,
     );
 
     if (widget === undefined) {
@@ -103,8 +107,8 @@ export class DashboardStore {
     const updatedDashboard: Dashboard = {
       ...dashboard,
       widgets: dashboard.widgets.map((candidate) =>
-        candidate.id === change.id
-          ? { ...candidate, configuration: change.configuration }
+        candidate.id === decodedChange.id
+          ? { ...candidate, configuration: decodedChange.configuration }
           : candidate,
       ),
     };
@@ -233,24 +237,40 @@ export class DashboardStore {
   }
 }
 
-function isWidgetCreation(value: unknown): value is WidgetCreation {
-  return (
-    isRecord(value) &&
-    typeof value['type'] === 'string' &&
-    value['type'].length > 0 &&
-    isJsonObject(value['configuration']) &&
-    isValidGridLayoutSize(value['preferredLayout'])
-  );
+function decodeWidgetCreation(value: unknown): WidgetCreation | null {
+  if (
+    !isRecord(value) ||
+    typeof value['type'] !== 'string' ||
+    value['type'].length === 0 ||
+    !isValidGridLayoutSize(value['preferredLayout'])
+  ) {
+    return null;
+  }
+
+  const configuration = decodeJsonObject(value['configuration']);
+
+  return configuration === null
+    ? null
+    : {
+        type: value['type'],
+        configuration,
+        preferredLayout: {
+          w: value['preferredLayout'].w,
+          h: value['preferredLayout'].h,
+        },
+      };
 }
 
-function isWidgetConfigurationChange(
+function decodeWidgetConfigurationChange(
   value: unknown,
-): value is WidgetConfigurationChange {
-  return (
-    isRecord(value) &&
-    typeof value['id'] === 'string' &&
-    isJsonObject(value['configuration'])
-  );
+): WidgetConfigurationChange | null {
+  if (!isRecord(value) || typeof value['id'] !== 'string') {
+    return null;
+  }
+
+  const configuration = decodeJsonObject(value['configuration']);
+
+  return configuration === null ? null : { id: value['id'], configuration };
 }
 
 function isWidgetLayoutChange(value: unknown): value is WidgetLayoutChange {

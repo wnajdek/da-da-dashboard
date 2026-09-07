@@ -4,11 +4,10 @@
 
 **Blocked by:** 04/Organize Dashboard code by feature responsibility.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] One focused JSON decoder accepts valid JSON objects and returns an application-owned value.
-- [ ] Cyclic, excessively deep, excessively large, throwing, proxy-backed, non-finite, and otherwise non-JSON inputs are rejected without leaking an exception.
-- [ ] Shared references that are valid in JSON produce deterministic owned output rather than being retained by reference.
-- [ ] Dashboard Snapshot, Widget Manifest, and Widget Element event seams use the decoder where Widget Configuration enters trusted state.
-- [ ] Focused tests cover valid nested values and adversarial failure cases, and existing behavior remains green.
-
+- [x] One focused JSON decoder accepts valid JSON objects and returns an application-owned value.
+- [x] Cyclic, excessively deep, excessively large, throwing, proxy-backed, non-finite, and otherwise non-JSON inputs are rejected without leaking an exception.
+- [x] Shared references that are valid in JSON produce deterministic owned output rather than being retained by reference.
+- [x] Dashboard Snapshot, Widget Manifest, and Widget Element event seams use the decoder where Widget Configuration enters trusted state.
+- [x] Focused tests cover valid nested values and adversarial failure cases, and existing behavior remains green.

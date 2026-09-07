@@ -5,6 +5,7 @@ import {
 
 describe('validateWidgetManifest', () => {
   it('normalizes a valid manifest into the host installation shape', () => {
+    const defaultConfiguration = { location: 'Warsaw', units: 'metric' };
     const result = validateWidgetManifest(
       {
         manifestVersion: SUPPORTED_WIDGET_MANIFEST_VERSION,
@@ -14,7 +15,7 @@ describe('validateWidgetManifest', () => {
         version: ' 1.0.0 ',
         elementTag: 'trusted-weather-widget',
         entryBundleUrl: '../entry.js#ignored',
-        defaultConfiguration: { location: 'Warsaw', units: 'metric' },
+        defaultConfiguration,
         preferredLayout: { w: 4, h: 3 },
       },
       'https://widgets.example.test/weather/manifest.json#ignored',
@@ -35,6 +36,12 @@ describe('validateWidgetManifest', () => {
     expect(result.manifest.entryBundleUrl).toBe(
       'https://widgets.example.test/entry.js',
     );
+    expect(result.manifest.defaultConfiguration as unknown).toEqual({
+      location: 'Warsaw',
+      units: 'metric',
+    });
+
+    defaultConfiguration.location = 'Changed after validation';
     expect(result.manifest.defaultConfiguration as unknown).toEqual({
       location: 'Warsaw',
       units: 'metric',

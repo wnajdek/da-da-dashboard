@@ -16,7 +16,7 @@ import type {
   WidgetConfigurationChange,
   WidgetInstance,
 } from '../workspace/dashboard.models';
-import { isJsonObject } from '../workspace/json-value';
+import { decodeJsonObject } from '../workspace/json-value';
 import { UnavailableWidgetCardComponent } from './unavailable-widget-card.component';
 import type { WidgetInstallation } from '../widget-installation/widget-installation-persistence.service';
 import { WidgetRuntimeService } from '../widget-installation/widget-runtime.service';
@@ -118,8 +118,10 @@ export class WidgetElementComponent {
       this.onConfigurationChanged = (event: Event) => {
         const detail = (event as CustomEvent<unknown>).detail;
 
-        if (isJsonObject(detail)) {
-          this.changed.emit({ id: this.widgetId(), configuration: detail });
+        const configuration = decodeJsonObject(detail);
+
+        if (configuration !== null) {
+          this.changed.emit({ id: this.widgetId(), configuration });
         }
       };
       element.addEventListener(
