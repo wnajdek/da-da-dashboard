@@ -1,8 +1,11 @@
 import { computed, inject, Injectable, Signal, signal } from '@angular/core';
 import {
+  decodeWidgetConfigurationChange,
+  decodeWidgetCreation,
+  decodeWidgetLayoutChange,
+} from './dashboard-decoder';
+import type {
   Dashboard,
-  isValidGridLayout,
-  isValidGridLayoutSize,
   WidgetConfigurationChange,
   WidgetCreation,
   WidgetInstance,
@@ -10,7 +13,6 @@ import {
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
-import { decodeJsonObject, isRecord } from './json-value';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
 
@@ -182,7 +184,8 @@ export class DashboardStore {
 
     const layoutsByWidgetId = new Map(
       changes
-        .filter(isWidgetLayoutChange)
+        .map(decodeWidgetLayoutChange)
+        .filter((change): change is WidgetLayoutChange => change !== null)
         .map((change) => [change.id, change.layout]),
     );
     let changed = false;
@@ -235,50 +238,6 @@ export class DashboardStore {
       0,
     );
   }
-}
-
-function decodeWidgetCreation(value: unknown): WidgetCreation | null {
-  if (
-    !isRecord(value) ||
-    typeof value['type'] !== 'string' ||
-    value['type'].length === 0 ||
-    !isValidGridLayoutSize(value['preferredLayout'])
-  ) {
-    return null;
-  }
-
-  const configuration = decodeJsonObject(value['configuration']);
-
-  return configuration === null
-    ? null
-    : {
-        type: value['type'],
-        configuration,
-        preferredLayout: {
-          w: value['preferredLayout'].w,
-          h: value['preferredLayout'].h,
-        },
-      };
-}
-
-function decodeWidgetConfigurationChange(
-  value: unknown,
-): WidgetConfigurationChange | null {
-  if (!isRecord(value) || typeof value['id'] !== 'string') {
-    return null;
-  }
-
-  const configuration = decodeJsonObject(value['configuration']);
-
-  return configuration === null ? null : { id: value['id'], configuration };
-}
-
-function isWidgetLayoutChange(value: unknown): value is WidgetLayoutChange {
-  return (
-    isRecord(value) &&
-    typeof value['id'] === 'string' &&
-    isValidGridLayout(value['layout'])
-  );
 }
 
 function areLayoutsEqual(

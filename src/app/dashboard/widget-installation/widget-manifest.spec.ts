@@ -83,6 +83,24 @@ describe('validateWidgetManifest', () => {
     ).toEqual({ status: 'invalid', reason: 'invalid' });
   });
 
+  it('rejects a Manifest with a Widget Type outside the Dashboard invariant', () => {
+    expect(
+      validateWidgetManifest(
+        {
+          manifestVersion: 1,
+          type: 'Weather Widget',
+          displayName: 'Weather',
+          version: '1.0.0',
+          elementTag: 'weather-widget',
+          entryBundleUrl: './entry.js',
+          defaultConfiguration: {},
+          preferredLayout: { w: 4, h: 3 },
+        },
+        'https://widgets.example.test/manifest.json',
+      ),
+    ).toEqual({ status: 'invalid', reason: 'invalid' });
+  });
+
   it('rejects an entry bundle from a different origin', () => {
     expect(
       validateWidgetManifest(

@@ -1,21 +1,19 @@
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import {
-  isValidGridLayout,
-  type Dashboard,
-  type WidgetInstance,
-} from './dashboard.models';
-import { decodeJsonObject, isRecord } from './json-value';
+  decodeDashboard,
+  decodeDashboardSnapshot,
+  type DashboardSnapshotV1,
+} from './dashboard-decoder';
+import type { Dashboard } from './dashboard.models';
+import { isRecord } from './json-value';
+
+export type { DashboardSnapshotV1 } from './dashboard-decoder';
 
 export const DASHBOARD_STORAGE_KEY = 'configurable-dashboard.snapshot';
 export const DASHBOARD_STORAGE = new InjectionToken<Storage>(
   'Dashboard storage',
   { providedIn: 'root', factory: () => localStorage },
 );
-
-export interface DashboardSnapshotV1 {
-  readonly schemaVersion: 1;
-  readonly dashboard: Dashboard;
-}
 
 export type DashboardLoadResult =
   | { readonly status: 'missing' }
@@ -45,23 +43,23 @@ export class DashboardPersistenceService {
     try {
       const snapshot: unknown = JSON.parse(savedSnapshot);
 
-      if (!isRecord(snapshot) || snapshot['schemaVersion'] !== 1) {
+      if (isRecord(snapshot) && snapshot['schemaVersion'] !== 1) {
         return {
           status: 'recovery',
           message: 'The saved Dashboard uses an unsupported version.',
         };
       }
 
-      const dashboard = decodeDashboard(snapshot['dashboard']);
+      const decodedSnapshot = decodeDashboardSnapshot(snapshot);
 
-      if (dashboard === null) {
+      if (decodedSnapshot === null) {
         return {
           status: 'recovery',
           message: 'The saved Dashboard is invalid.',
         };
       }
 
-      return { status: 'ready', dashboard };
+      return { status: 'ready', dashboard: decodedSnapshot.dashboard };
     } catch {
       return {
         status: 'recovery',
@@ -89,78 +87,4 @@ export class DashboardPersistenceService {
       return false;
     }
   }
-}
-
-function decodeDashboard(value: unknown): Dashboard | null {
-  if (
-    !isRecord(value) ||
-    !isUuid(value['id']) ||
-    typeof value['title'] !== 'string' ||
-    !Array.isArray(value['widgets'])
-  ) {
-    return null;
-  }
-
-  const id = value['id'];
-  const title = value['title'];
-  const widgets = value['widgets'].map(decodeWidgetInstance);
-  const decodedWidgets = widgets.filter(
-    (widget): widget is WidgetInstance => widget !== null,
-  );
-
-  if (
-    decodedWidgets.length !== widgets.length ||
-    new Set(decodedWidgets.map((widget) => widget.id)).size !== widgets.length
-  ) {
-    return null;
-  }
-
-  return {
-    id,
-    title,
-    widgets: decodedWidgets,
-  };
-}
-
-function decodeWidgetInstance(value: unknown): WidgetInstance | null {
-  if (
-    !isRecord(value) ||
-    !isUuid(value['id']) ||
-    !isValidGridLayout(value['layout'])
-  ) {
-    return null;
-  }
-
-  const configuration = decodeJsonObject(value['configuration']);
-  const id = value['id'];
-  const type = value['type'];
-
-  if (
-    typeof type !== 'string' ||
-    type.length === 0 ||
-    configuration === null
-  ) {
-    return null;
-  }
-
-  return {
-    id,
-    type,
-    layout: {
-      x: value['layout'].x,
-      y: value['layout'].y,
-      w: value['layout'].w,
-      h: value['layout'].h,
-    },
-    configuration,
-  };
-}
-
-function isUuid(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-      value,
-    )
-  );
 }

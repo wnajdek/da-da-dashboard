@@ -4,12 +4,11 @@
 
 **Blocked by:** 06/Make Widget Configuration decoding safe and deterministic.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Widget Type has one documented invariant used by manifests, saved Widget Instances, and Dashboard commands while still permitting valid Unavailable Widgets.
-- [ ] Widget Type is represented honestly as a string or as a genuine validated brand rather than an ineffective intersection type.
-- [ ] Grid Layout validation consistently enforces the integer, positivity, and grid-width constraints required by the Dashboard and GridStack.
-- [ ] Dashboard decoding validates identity, title, Widget Instance uniqueness, type, layout, and owned Widget Configuration in one authoritative module.
-- [ ] Persistence delegates structural decoding to that module, while pure stateless helpers remain module-level functions rather than artificial instance methods.
-- [ ] Duplicate validators and unused or misleading JSON type re-exports are removed, with focused recovery and validation tests remaining green.
-
+- [x] Widget Type has one documented invariant used by manifests, saved Widget Instances, and Dashboard commands while still permitting valid Unavailable Widgets.
+- [x] Widget Type is represented honestly as a string or as a genuine validated brand rather than an ineffective intersection type.
+- [x] Grid Layout validation consistently enforces the integer, positivity, and grid-width constraints required by the Dashboard and GridStack.
+- [x] Dashboard decoding validates identity, title, Widget Instance uniqueness, type, layout, and owned Widget Configuration in one authoritative module.
+- [x] Persistence delegates structural decoding to that module, while pure stateless helpers remain module-level functions rather than artificial instance methods.
+- [x] Duplicate validators and unused or misleading JSON type re-exports are removed, with focused recovery and validation tests remaining green.

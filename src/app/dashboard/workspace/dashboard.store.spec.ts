@@ -69,6 +69,18 @@ describe('DashboardStore', () => {
     });
   });
 
+  it('ignores a Widget creation with an invalid Widget Type', () => {
+    const store = TestBed.inject(DashboardStore);
+
+    store.addWidget({
+      type: 'Weather',
+      configuration: { location: 'Warsaw' },
+      preferredLayout: { w: 4, h: 3 },
+    });
+
+    expect(store.dashboard()?.widgets).toEqual([]);
+  });
+
   it('persists a complete replacement Widget Configuration without interpreting it', () => {
     const store = TestBed.inject(DashboardStore);
     store.addWidget({

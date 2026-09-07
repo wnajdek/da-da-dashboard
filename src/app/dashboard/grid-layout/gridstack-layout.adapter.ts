@@ -1,6 +1,6 @@
 import { GridStackNode, GridStackWidget } from 'gridstack';
-import {
-  isValidGridLayout,
+import { decodeWidgetLayoutChange } from '../workspace/dashboard-decoder';
+import type {
   WidgetInstance,
   WidgetLayoutChange,
 } from '../workspace/dashboard.models';
@@ -15,15 +15,9 @@ export class GridStackLayoutAdapter {
   }
 
   static toLayoutChange(node: GridStackLayoutNode): WidgetLayoutChange | null {
-    const layout = { x: node.x, y: node.y, w: node.w, h: node.h };
-
-    if (typeof node.id !== 'string' || !isValidGridLayout(layout)) {
-      return null;
-    }
-
-    return {
+    return decodeWidgetLayoutChange({
       id: node.id,
-      layout,
-    };
+      layout: { x: node.x, y: node.y, w: node.w, h: node.h },
+    });
   }
 }

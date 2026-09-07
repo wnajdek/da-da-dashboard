@@ -3,6 +3,10 @@ import type {
   WidgetConfiguration,
   WidgetType,
 } from '../workspace/dashboard.models';
+import {
+  decodeGridLayoutSize,
+  decodeWidgetType,
+} from '../workspace/dashboard-decoder';
 import { decodeJsonObject, isRecord } from '../workspace/json-value';
 
 export const SUPPORTED_WIDGET_MANIFEST_VERSION = 1 as const;
@@ -56,17 +60,19 @@ export function validateWidgetManifest(
   const defaultConfiguration = value['defaultConfiguration'];
   const preferredLayout = value['preferredLayout'];
 
+  const decodedType = decodeWidgetType(type);
   const decodedConfiguration = decodeJsonObject(defaultConfiguration);
+  const decodedPreferredLayout = decodeGridLayoutSize(preferredLayout);
 
   if (
-    !isStableWidgetType(type) ||
+    decodedType === null ||
     !isNonEmptyString(displayName) ||
     (description !== undefined && typeof description !== 'string') ||
     !isNonEmptyString(version) ||
     !isCustomElementTag(elementTag) ||
     !isNonEmptyString(entryBundleUrl) ||
     decodedConfiguration === null ||
-    !isPreferredLayout(preferredLayout)
+    decodedPreferredLayout === null
   ) {
     return { status: 'invalid', reason: 'invalid' };
   }
@@ -84,17 +90,14 @@ export function validateWidgetManifest(
     status: 'valid',
     manifest: {
       manifestVersion: SUPPORTED_WIDGET_MANIFEST_VERSION,
-      type,
+      type: decodedType,
       displayName: displayName.trim(),
       ...(description === undefined ? {} : { description: description.trim() }),
       version: version.trim(),
       elementTag,
       entryBundleUrl: resolvedEntryBundleUrl,
       defaultConfiguration: decodedConfiguration,
-      preferredLayout: {
-        w: preferredLayout.w,
-        h: preferredLayout.h,
-      },
+      preferredLayout: decodedPreferredLayout,
     },
   };
 }
@@ -151,15 +154,6 @@ function resolveTrustedEntryBundleUrl(
   }
 }
 
-function isStableWidgetType(value: unknown): value is WidgetType {
-  return (
-    typeof value === 'string' &&
-    value.length > 0 &&
-    value.length <= 128 &&
-    /^[a-z0-9][a-z0-9._-]*$/.test(value)
-  );
-}
-
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -170,19 +164,4 @@ function isCustomElementTag(value: unknown): value is string {
     value.length <= 128 &&
     /^[a-z][a-z0-9._-]*-[a-z0-9._-]+$/.test(value)
   );
-}
-
-function isPreferredLayout(
-  value: unknown,
-): value is Pick<GridLayout, 'w' | 'h'> {
-  return (
-    isRecord(value) &&
-    isPositiveInteger(value['w']) &&
-    value['w'] <= 12 &&
-    isPositiveInteger(value['h'])
-  );
-}
-
-function isPositiveInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
