@@ -23,7 +23,7 @@ import {
 import { GridStackLayoutAdapter } from './gridstack-layout.adapter';
 import { UnavailableWidgetCardComponent } from '../widget-element-host/unavailable-widget-card.component';
 import { WidgetElementComponent } from '../widget-element-host/widget-element.component';
-import { WidgetRuntimeService } from '../widget-installation/widget-runtime.service';
+import { WidgetInstallationService } from '../widget-installation/widget-installation.service';
 
 @Component({
   selector: 'app-dashboard-grid',
@@ -42,7 +42,7 @@ export class DashboardGridComponent implements AfterViewInit {
     viewChild.required<ElementRef<HTMLElement>>('grid');
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
-  private readonly runtime = inject(WidgetRuntimeService);
+  private readonly installations = inject(WidgetInstallationService);
   private grid: GridStack | null = null;
 
   constructor() {
@@ -86,7 +86,7 @@ export class DashboardGridComponent implements AfterViewInit {
   }
 
   protected installationFor(type: string) {
-    return this.runtime.installationFor(type);
+    return this.installations.installationFor(type);
   }
 
   private synchronizeGridItems(): void {

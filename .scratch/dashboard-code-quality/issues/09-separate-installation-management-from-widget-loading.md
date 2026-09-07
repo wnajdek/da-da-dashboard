@@ -4,12 +4,11 @@
 
 **Blocked by:** 08/Separate Widget Installation contracts from persistence.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Installing, listing, resolving, and removing Widget Installations are owned by one focused state module.
-- [ ] Loading and verifying a Widget Element is owned by a separate focused module.
-- [ ] Trusted Manifest Origin enforcement, same-origin entry-bundle validation, duplicate detection, and Unavailable Widget outcomes remain unchanged.
-- [ ] Browser manifest fetching, script insertion, and Custom Element registry access are concentrated behind narrow injectable adapters rather than spread through UI code.
-- [ ] Installation operation results are sufficient for callers to present feedback without a globally shared presentation-message state.
-- [ ] Focused tests exercise each interface through controlled adapters, and existing integration behavior remains green.
-
+- [x] Installing, listing, resolving, and removing Widget Installations are owned by one focused state module.
+- [x] Loading and verifying a Widget Element is owned by a separate focused module.
+- [x] Trusted Manifest Origin enforcement, same-origin entry-bundle validation, duplicate detection, and Unavailable Widget outcomes remain unchanged.
+- [x] Browser manifest fetching, script insertion, and Custom Element registry access are concentrated behind narrow injectable adapters rather than spread through UI code.
+- [x] Installation operation results are sufficient for callers to present feedback without a globally shared presentation-message state.
+- [x] Focused tests exercise each interface through controlled adapters, and existing integration behavior remains green.

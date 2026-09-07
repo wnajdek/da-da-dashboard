@@ -7,7 +7,7 @@ import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
 import { provideWidgetInstallationPersistence } from './dashboard/widget-installation/widget-installation-persistence.service';
-import { provideTrustedManifestOrigins } from './dashboard/widget-installation/widget-runtime.service';
+import { provideTrustedManifestOrigins } from './dashboard/widget-installation/widget-trust-policy';
 
 export const appConfig: ApplicationConfig = {
   providers: [

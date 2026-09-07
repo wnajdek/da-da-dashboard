@@ -20,12 +20,16 @@ import {
   provideWidgetInstallationPersistence,
 } from '../widget-installation/widget-installation-persistence.service';
 import {
-  TRUSTED_MANIFEST_ORIGINS,
   WIDGET_ENTRY_BUNDLE_LOADER,
+  type WidgetEntryBundleLoader,
+} from '../widget-installation/widget-element-browser.adapters';
+import {
   WIDGET_MANIFEST_SOURCE,
-  WidgetEntryBundleLoader,
-  WidgetManifestSource,
-} from '../widget-installation/widget-runtime.service';
+  type WidgetManifestSource,
+} from '../widget-installation/widget-manifest-source';
+import {
+  TRUSTED_MANIFEST_ORIGINS,
+} from '../widget-installation/widget-trust-policy';
 import type { WidgetConfiguration } from './dashboard.models';
 import { MemoryStorage } from '../../testing/memory-storage';
 import type { WidgetInstallation } from '../widget-installation/widget-installation.models';
@@ -78,6 +82,23 @@ const CONTINUITY_MANIFEST = {
 };
 
 describe('DashboardShellComponent', () => {
+  it('shows installation persistence recovery feedback', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem('configurable-dashboard.widget-installations', '{');
+    const fixture = await createShellFixture(storage, {
+      load: jasmine.createSpy('load'),
+    });
+
+    const status = getHost(fixture).querySelector<HTMLElement>(
+      '[data-testid="widget-installation-status"]',
+    );
+
+    expect(status?.textContent).toContain(
+      'Saved Widget Installations could not be read.',
+    );
+    expect(status?.classList).toContain('installation-feedback--error');
+  });
+
   it('installs a trusted manifest and shows it as an available Widget Type', async () => {
     const storage = new MemoryStorage();
     const source: WidgetManifestSource = {

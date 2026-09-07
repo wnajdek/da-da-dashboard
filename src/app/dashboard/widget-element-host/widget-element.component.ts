@@ -19,7 +19,7 @@ import type {
 import { decodeJsonObject } from '../workspace/json-value';
 import { UnavailableWidgetCardComponent } from './unavailable-widget-card.component';
 import type { WidgetInstallation } from '../widget-installation/widget-installation.models';
-import { WidgetRuntimeService } from '../widget-installation/widget-runtime.service';
+import { WidgetElementLoaderService } from '../widget-installation/widget-element-loader.service';
 
 interface WidgetElement extends HTMLElement {
   configuration: WidgetConfiguration;
@@ -68,7 +68,7 @@ export class WidgetElementComponent {
   );
   private readonly elementHost =
     viewChild<ElementRef<HTMLElement>>('elementHost');
-  private readonly runtime = inject(WidgetRuntimeService);
+  private readonly elementLoader = inject(WidgetElementLoaderService);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
   private element: WidgetElement | null = null;
@@ -106,7 +106,7 @@ export class WidgetElementComponent {
     this.state.set('loading');
 
     try {
-      await this.runtime.loadElement(installation);
+      await this.elementLoader.load(installation);
 
       if (this.destroyed || revision !== this.mountRevision) {
         return;

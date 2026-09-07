@@ -23,20 +23,23 @@ export const WIDGET_INSTALLATION_PERSISTENCE =
     'Widget Installation persistence',
   );
 
-export interface WidgetInstallationFeedback {
-  readonly status: 'success' | 'error';
-  readonly message: string;
-}
-
 export type WidgetInstallationRejection = {
   readonly status: 'rejected';
   readonly message: string;
 };
 
 export type WidgetInstallationResult =
-  | { readonly status: 'installed'; readonly installation: WidgetInstallation }
+  | {
+      readonly status: 'installed';
+      readonly installation: WidgetInstallation;
+      readonly message: string;
+    }
   | WidgetInstallationRejection;
 
 export type WidgetInstallationRemovalResult =
-  | { readonly status: 'removed'; readonly installation: WidgetInstallation }
+  | {
+      readonly status: 'removed';
+      readonly installation: WidgetInstallation;
+      readonly message: string;
+    }
   | WidgetInstallationRejection;
