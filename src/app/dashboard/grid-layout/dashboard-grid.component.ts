@@ -19,11 +19,11 @@ import {
   WidgetConfigurationChange,
   WidgetInstance,
   WidgetLayoutChange,
-} from './dashboard.models';
+} from '../workspace/dashboard.models';
 import { GridStackLayoutAdapter } from './gridstack-layout.adapter';
-import { UnavailableWidgetCardComponent } from './unavailable-widget-card.component';
-import { WidgetElementComponent } from './widget-element.component';
-import { WidgetRuntimeService } from './widget-runtime.service';
+import { UnavailableWidgetCardComponent } from '../widget-element-host/unavailable-widget-card.component';
+import { WidgetElementComponent } from '../widget-element-host/widget-element.component';
+import { WidgetRuntimeService } from '../widget-installation/widget-runtime.service';
 
 @Component({
   selector: 'app-dashboard-grid',

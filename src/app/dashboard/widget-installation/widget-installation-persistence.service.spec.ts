@@ -9,8 +9,8 @@ import {
 import {
   DASHBOARD_STORAGE,
   DASHBOARD_STORAGE_KEY,
-} from './dashboard-persistence.service';
-import { MemoryStorage } from '../testing/memory-storage';
+} from '../workspace/dashboard-persistence.service';
+import { MemoryStorage } from '../../testing/memory-storage';
 
 describe('WidgetInstallationPersistenceService', () => {
   let storage: MemoryStorage;

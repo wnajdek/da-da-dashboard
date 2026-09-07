@@ -2,8 +2,8 @@ import type {
   GridLayout,
   WidgetConfiguration,
   WidgetType,
-} from './dashboard.models';
-import { isJsonObject, isRecord } from './json-value';
+} from '../workspace/dashboard.models';
+import { isJsonObject, isRecord } from '../workspace/json-value';
 
 export const SUPPORTED_WIDGET_MANIFEST_VERSION = 1 as const;
 

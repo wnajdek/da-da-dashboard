@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { DASHBOARD_STORAGE } from './dashboard/dashboard-persistence.service';
+import { DASHBOARD_STORAGE } from './dashboard/workspace/dashboard-persistence.service';
 import { MemoryStorage } from './testing/memory-storage';
 import { App } from './app';
 

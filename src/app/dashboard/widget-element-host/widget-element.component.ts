@@ -15,11 +15,11 @@ import type {
   WidgetConfiguration,
   WidgetConfigurationChange,
   WidgetInstance,
-} from './dashboard.models';
-import { isJsonObject } from './json-value';
+} from '../workspace/dashboard.models';
+import { isJsonObject } from '../workspace/json-value';
 import { UnavailableWidgetCardComponent } from './unavailable-widget-card.component';
-import type { WidgetInstallation } from './widget-installation-persistence.service';
-import { WidgetRuntimeService } from './widget-runtime.service';
+import type { WidgetInstallation } from '../widget-installation/widget-installation-persistence.service';
+import { WidgetRuntimeService } from '../widget-installation/widget-runtime.service';
 
 interface WidgetElement extends HTMLElement {
   configuration: WidgetConfiguration;

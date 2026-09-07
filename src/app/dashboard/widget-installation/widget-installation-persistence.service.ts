@@ -1,6 +1,6 @@
 import { inject, Injectable, InjectionToken } from '@angular/core';
-import { DASHBOARD_STORAGE } from './dashboard-persistence.service';
-import { isRecord } from './json-value';
+import { DASHBOARD_STORAGE } from '../workspace/dashboard-persistence.service';
+import { isRecord } from '../workspace/json-value';
 import {
   normalizeHttpUrl,
   validateWidgetManifest,

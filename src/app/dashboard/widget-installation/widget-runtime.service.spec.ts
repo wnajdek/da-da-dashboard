@@ -6,12 +6,12 @@ import {
   WidgetEntryBundleLoader,
   WidgetRuntimeService,
 } from './widget-runtime.service';
-import { DASHBOARD_STORAGE } from './dashboard-persistence.service';
+import { DASHBOARD_STORAGE } from '../workspace/dashboard-persistence.service';
 import {
   WIDGET_INSTALLATIONS_STORAGE,
   WIDGET_INSTALLATIONS_STORAGE_KEY,
 } from './widget-installation-persistence.service';
-import { MemoryStorage } from '../testing/memory-storage';
+import { MemoryStorage } from '../../testing/memory-storage';
 import type { WidgetInstallation } from './widget-installation-persistence.service';
 
 describe('WidgetRuntimeService', () => {

@@ -15,16 +15,16 @@ import {
   DashboardPersistenceService,
 } from './dashboard-persistence.service';
 import { DashboardStore } from './dashboard.store';
-import { WIDGET_INSTALLATIONS_STORAGE_KEY } from './widget-installation-persistence.service';
+import { WIDGET_INSTALLATIONS_STORAGE_KEY } from '../widget-installation/widget-installation-persistence.service';
 import {
   TRUSTED_MANIFEST_ORIGINS,
   WIDGET_ENTRY_BUNDLE_LOADER,
   WIDGET_MANIFEST_SOURCE,
   WidgetEntryBundleLoader,
   WidgetManifestSource,
-} from './widget-runtime.service';
+} from '../widget-installation/widget-runtime.service';
 import type { WidgetConfiguration } from './dashboard.models';
-import { MemoryStorage } from '../testing/memory-storage';
+import { MemoryStorage } from '../../testing/memory-storage';
 
 const TRUSTED_ORIGIN = 'https://widgets.example.test';
 const MANIFEST_URL = `${TRUSTED_ORIGIN}/weather/manifest.json`;

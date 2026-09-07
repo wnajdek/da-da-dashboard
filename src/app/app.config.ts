@@ -6,7 +6,7 @@ import {
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
-import { provideTrustedManifestOrigins } from './dashboard/widget-runtime.service';
+import { provideTrustedManifestOrigins } from './dashboard/widget-installation/widget-runtime.service';
 
 export const appConfig: ApplicationConfig = {
   providers: [

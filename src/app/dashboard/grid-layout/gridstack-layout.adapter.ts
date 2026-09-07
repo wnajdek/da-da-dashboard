@@ -3,7 +3,7 @@ import {
   isValidGridLayout,
   WidgetInstance,
   WidgetLayoutChange,
-} from './dashboard.models';
+} from '../workspace/dashboard.models';
 
 type GridStackLayoutNode = Pick<GridStackNode, 'id' | 'x' | 'y' | 'w' | 'h'>;
 

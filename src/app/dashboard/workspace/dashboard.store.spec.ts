@@ -5,7 +5,7 @@ import {
   DashboardPersistenceService,
 } from './dashboard-persistence.service';
 import { DashboardStore } from './dashboard.store';
-import { MemoryStorage } from '../testing/memory-storage';
+import { MemoryStorage } from '../../testing/memory-storage';
 
 describe('DashboardStore', () => {
   let storage: MemoryStorage;

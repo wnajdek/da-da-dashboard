@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import type { WidgetConfiguration, WidgetType } from './dashboard.models';
+import type { WidgetConfiguration, WidgetType } from '../workspace/dashboard.models';
 
 @Component({
   selector: 'app-unavailable-widget-card',
