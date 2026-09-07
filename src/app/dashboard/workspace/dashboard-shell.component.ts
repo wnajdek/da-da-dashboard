@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { DashboardStore } from './dashboard.store';
 import { DashboardGridComponent } from '../grid-layout/dashboard-grid.component';
-import type { WidgetInstallation } from '../widget-installation/widget-installation-persistence.service';
+import type { WidgetInstallation } from '../widget-installation/widget-installation.models';
 import { WidgetRuntimeService } from '../widget-installation/widget-runtime.service';
 
 @Component({

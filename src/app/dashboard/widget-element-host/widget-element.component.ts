@@ -18,7 +18,7 @@ import type {
 } from '../workspace/dashboard.models';
 import { decodeJsonObject } from '../workspace/json-value';
 import { UnavailableWidgetCardComponent } from './unavailable-widget-card.component';
-import type { WidgetInstallation } from '../widget-installation/widget-installation-persistence.service';
+import type { WidgetInstallation } from '../widget-installation/widget-installation.models';
 import { WidgetRuntimeService } from '../widget-installation/widget-runtime.service';
 
 interface WidgetElement extends HTMLElement {

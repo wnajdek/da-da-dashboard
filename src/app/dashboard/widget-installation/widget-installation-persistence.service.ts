@@ -1,39 +1,25 @@
-import { inject, Injectable, InjectionToken } from '@angular/core';
+import { inject, Injectable, type Provider } from '@angular/core';
 import { DASHBOARD_STORAGE } from '../workspace/dashboard-persistence.service';
 import { isRecord } from '../workspace/json-value';
+import { normalizeHttpUrl, validateWidgetManifest } from './widget-manifest';
 import {
-  normalizeHttpUrl,
-  validateWidgetManifest,
-  type WidgetManifest,
-} from './widget-manifest';
+  WIDGET_INSTALLATION_PERSISTENCE,
+  type WidgetInstallation,
+  type WidgetInstallationPersistence,
+  type WidgetInstallationsLoadResult,
+} from './widget-installation.models';
 
-export const WIDGET_INSTALLATIONS_STORAGE_KEY =
+const WIDGET_INSTALLATIONS_STORAGE_KEY =
   'configurable-dashboard.widget-installations';
-export const WIDGET_INSTALLATIONS_STORAGE = new InjectionToken<Storage>(
-  'Widget installations storage',
-  { providedIn: 'root', factory: () => inject(DASHBOARD_STORAGE) },
-);
 
-export interface WidgetInstallation extends WidgetManifest {
-  readonly manifestUrl: string;
-}
-
-export interface WidgetInstallationsSnapshotV1 {
+interface WidgetInstallationsSnapshotV1 {
   readonly schemaVersion: 1;
   readonly installations: readonly WidgetInstallation[];
 }
 
-export type WidgetInstallationsLoadResult =
-  | { readonly status: 'missing' }
-  | {
-      readonly status: 'ready';
-      readonly installations: readonly WidgetInstallation[];
-    }
-  | { readonly status: 'recovery'; readonly message: string };
-
 @Injectable({ providedIn: 'root' })
-export class WidgetInstallationPersistenceService {
-  private readonly storage = inject(WIDGET_INSTALLATIONS_STORAGE);
+export class WidgetInstallationPersistenceService implements WidgetInstallationPersistence {
+  private readonly storage = inject(DASHBOARD_STORAGE);
 
   load(): WidgetInstallationsLoadResult {
     let savedSnapshot: string | null;
@@ -118,6 +104,13 @@ export class WidgetInstallationPersistenceService {
       return false;
     }
   }
+}
+
+export function provideWidgetInstallationPersistence(): Provider {
+  return {
+    provide: WIDGET_INSTALLATION_PERSISTENCE,
+    useExisting: WidgetInstallationPersistenceService,
+  };
 }
 
 function readWidgetInstallation(value: unknown): WidgetInstallation | null {

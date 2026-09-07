@@ -15,7 +15,10 @@ import {
   DashboardPersistenceService,
 } from './dashboard-persistence.service';
 import { DashboardStore } from './dashboard.store';
-import { WIDGET_INSTALLATIONS_STORAGE_KEY } from '../widget-installation/widget-installation-persistence.service';
+import {
+  WidgetInstallationPersistenceService,
+  provideWidgetInstallationPersistence,
+} from '../widget-installation/widget-installation-persistence.service';
 import {
   TRUSTED_MANIFEST_ORIGINS,
   WIDGET_ENTRY_BUNDLE_LOADER,
@@ -25,11 +28,12 @@ import {
 } from '../widget-installation/widget-runtime.service';
 import type { WidgetConfiguration } from './dashboard.models';
 import { MemoryStorage } from '../../testing/memory-storage';
+import type { WidgetInstallation } from '../widget-installation/widget-installation.models';
 
 const TRUSTED_ORIGIN = 'https://widgets.example.test';
 const MANIFEST_URL = `${TRUSTED_ORIGIN}/weather/manifest.json`;
 const VALID_MANIFEST = {
-  manifestVersion: 1,
+  manifestVersion: 1 as const,
   type: 'weather',
   displayName: 'Weather',
   description: 'Current conditions',
@@ -38,6 +42,11 @@ const VALID_MANIFEST = {
   entryBundleUrl: './entry.js',
   defaultConfiguration: { location: 'Warsaw', units: 'metric' },
   preferredLayout: { w: 4, h: 3 },
+};
+const WEATHER_INSTALLATION: WidgetInstallation = {
+  manifestUrl: `${TRUSTED_ORIGIN}/weather/manifest.json`,
+  ...VALID_MANIFEST,
+  entryBundleUrl: `${TRUSTED_ORIGIN}/weather/entry.js`,
 };
 const WORKING_MANIFEST = {
   ...VALID_MANIFEST,
@@ -88,18 +97,7 @@ describe('DashboardShellComponent', () => {
     expect(host.textContent).toContain('1.0.0');
     expect(host.textContent).toContain('trusted-weather-widget');
     expect(host.textContent).toContain('4 × 3');
-    expect(
-      JSON.parse(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)!),
-    ).toEqual({
-      schemaVersion: 1,
-      installations: [
-        {
-          manifestUrl: MANIFEST_URL,
-          ...VALID_MANIFEST,
-          entryBundleUrl: `${TRUSTED_ORIGIN}/weather/entry.js`,
-        },
-      ],
-    });
+    expectWidgetInstallations([WEATHER_INSTALLATION]);
     expectEmptyDashboardSnapshot(storage);
   });
 
@@ -120,7 +118,7 @@ describe('DashboardShellComponent', () => {
 
     expect(source.load).not.toHaveBeenCalled();
     expect(host.textContent).toContain('origin is not trusted');
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBeNull();
+    expectMissingWidgetInstallations();
     expectEmptyDashboardSnapshot(storage);
   });
 
@@ -138,7 +136,7 @@ describe('DashboardShellComponent', () => {
 
     expect(source.load).not.toHaveBeenCalled();
     expect(host.textContent).toContain('Enter a valid Widget Manifest URL.');
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBeNull();
+    expectMissingWidgetInstallations();
   });
 
   it('rejects a malformed Widget Manifest without changing saved state', async () => {
@@ -158,7 +156,7 @@ describe('DashboardShellComponent', () => {
 
     expect(source.load).toHaveBeenCalledOnceWith(MANIFEST_URL);
     expect(host.textContent).toContain('The Widget Manifest is invalid.');
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBeNull();
+    expectMissingWidgetInstallations();
     expectEmptyDashboardSnapshot(storage);
   });
 
@@ -177,7 +175,7 @@ describe('DashboardShellComponent', () => {
     expect(host.textContent).toContain(
       'The Widget Manifest uses an unsupported version.',
     );
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBeNull();
+    expectMissingWidgetInstallations();
     expectEmptyDashboardSnapshot(storage);
   });
 
@@ -198,7 +196,7 @@ describe('DashboardShellComponent', () => {
     expect(host.textContent).toContain(
       'The Widget Manifest could not be read.',
     );
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBeNull();
+    expectMissingWidgetInstallations();
     expectEmptyDashboardSnapshot(storage);
   });
 
@@ -229,18 +227,7 @@ describe('DashboardShellComponent', () => {
     expect(
       host.querySelectorAll('[data-testid="available-widget"]'),
     ).toHaveSize(1);
-    expect(
-      JSON.parse(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)!),
-    ).toEqual({
-      schemaVersion: 1,
-      installations: [
-        {
-          manifestUrl: MANIFEST_URL,
-          ...VALID_MANIFEST,
-          entryBundleUrl: `${TRUSTED_ORIGIN}/weather/entry.js`,
-        },
-      ],
-    });
+    expectWidgetInstallations([WEATHER_INSTALLATION]);
   });
 
   it('rejects a duplicate Manifest URL even when its returned Widget Type changes', async () => {
@@ -323,29 +310,22 @@ describe('DashboardShellComponent', () => {
     expect(host.textContent).toContain(
       'The Widget Manifest points to an untrusted entry bundle.',
     );
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBeNull();
+    expectMissingWidgetInstallations();
     expectEmptyDashboardSnapshot(storage);
   });
 
   it('restores installations independently from the empty Dashboard snapshot', async () => {
     const storage = new MemoryStorage();
-    storage.setItem(
-      WIDGET_INSTALLATIONS_STORAGE_KEY,
-      JSON.stringify({
-        schemaVersion: 1,
-        installations: [
-          {
-            manifestUrl: MANIFEST_URL,
-            ...VALID_MANIFEST,
-            entryBundleUrl: `${TRUSTED_ORIGIN}/weather/entry.js`,
-          },
-        ],
-      }),
-    );
     const source: WidgetManifestSource = {
       load: jasmine.createSpy('load'),
     };
-    const fixture = await createShellFixture(storage, source);
+    const fixture = await createShellFixture(
+      storage,
+      source,
+      [TRUSTED_ORIGIN],
+      undefined,
+      [WEATHER_INSTALLATION],
+    );
     const host = getHost(fixture);
 
     expect(host.textContent).toContain('Weather');
@@ -414,19 +394,6 @@ describe('DashboardShellComponent', () => {
     };
     const savedSnapshot = JSON.stringify({ schemaVersion: 1, dashboard });
     storage.setItem(DASHBOARD_STORAGE_KEY, savedSnapshot);
-    storage.setItem(
-      WIDGET_INSTALLATIONS_STORAGE_KEY,
-      JSON.stringify({
-        schemaVersion: 1,
-        installations: [
-          {
-            manifestUrl: MANIFEST_URL,
-            ...VALID_MANIFEST,
-            entryBundleUrl: `${TRUSTED_ORIGIN}/weather/entry.js`,
-          },
-        ],
-      }),
-    );
     const source: WidgetManifestSource = {
       load: jasmine.createSpy('load'),
     };
@@ -438,6 +405,7 @@ describe('DashboardShellComponent', () => {
       source,
       [TRUSTED_ORIGIN],
       loader,
+      [WEATHER_INSTALLATION],
     );
     await fixture.whenStable();
     fixture.detectChanges();
@@ -466,9 +434,7 @@ describe('DashboardShellComponent', () => {
       'Existing Widget Instances are now unavailable.',
     );
     expect(storage.getItem(DASHBOARD_STORAGE_KEY)).toBe(savedSnapshot);
-    expect(
-      JSON.parse(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)!),
-    ).toEqual({ schemaVersion: 1, installations: [] });
+    expectWidgetInstallations([]);
   });
 
   it('contains runtime failures while a functioning installed Widget remains usable', async () => {
@@ -983,6 +949,7 @@ async function createShellFixture(
   source: WidgetManifestSource,
   trustedOrigins: readonly string[] = [TRUSTED_ORIGIN],
   loader?: WidgetEntryBundleLoader,
+  installations: readonly WidgetInstallation[] = [],
 ): Promise<ComponentFixture<DashboardShellComponent>> {
   await TestBed.configureTestingModule({
     imports: [DashboardShellComponent],
@@ -994,8 +961,15 @@ async function createShellFixture(
       ...(loader === undefined
         ? []
         : [{ provide: WIDGET_ENTRY_BUNDLE_LOADER, useValue: loader }]),
+      provideWidgetInstallationPersistence(),
     ],
   }).compileComponents();
+
+  if (installations.length > 0) {
+    expect(
+      TestBed.inject(WidgetInstallationPersistenceService).save(installations),
+    ).toBeTrue();
+  }
 
   const fixture = TestBed.createComponent(DashboardShellComponent);
   fixture.detectChanges();
@@ -1039,6 +1013,21 @@ function expectEmptyDashboardSnapshot(storage: MemoryStorage): void {
       title: 'My dashboard',
       widgets: [],
     },
+  });
+}
+
+function expectMissingWidgetInstallations(): void {
+  expect(TestBed.inject(WidgetInstallationPersistenceService).load()).toEqual({
+    status: 'missing',
+  });
+}
+
+function expectWidgetInstallations(
+  installations: readonly WidgetInstallation[],
+): void {
+  expect(TestBed.inject(WidgetInstallationPersistenceService).load()).toEqual({
+    status: 'ready',
+    installations,
   });
 }
 

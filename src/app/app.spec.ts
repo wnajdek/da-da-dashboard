@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideWidgetInstallationPersistence } from './dashboard/widget-installation/widget-installation-persistence.service';
 import { DASHBOARD_STORAGE } from './dashboard/workspace/dashboard-persistence.service';
 import { MemoryStorage } from './testing/memory-storage';
 import { App } from './app';
@@ -11,6 +12,7 @@ describe('App', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: DASHBOARD_STORAGE, useValue: new MemoryStorage() },
+        provideWidgetInstallationPersistence(),
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(App);

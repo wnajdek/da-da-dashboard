@@ -1,16 +1,12 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import {
-  WIDGET_INSTALLATIONS_STORAGE,
-  WIDGET_INSTALLATIONS_STORAGE_KEY,
-  WidgetInstallation,
-  WidgetInstallationPersistenceService,
-} from './widget-installation-persistence.service';
+import { WidgetInstallationPersistenceService } from './widget-installation-persistence.service';
 import {
   DASHBOARD_STORAGE,
   DASHBOARD_STORAGE_KEY,
 } from '../workspace/dashboard-persistence.service';
 import { MemoryStorage } from '../../testing/memory-storage';
+import type { WidgetInstallation } from './widget-installation.models';
 
 describe('WidgetInstallationPersistenceService', () => {
   let storage: MemoryStorage;
@@ -22,7 +18,6 @@ describe('WidgetInstallationPersistenceService', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: DASHBOARD_STORAGE, useValue: storage },
-        { provide: WIDGET_INSTALLATIONS_STORAGE, useValue: storage },
       ],
     });
     service = TestBed.inject(WidgetInstallationPersistenceService);
@@ -43,7 +38,7 @@ describe('WidgetInstallationPersistenceService', () => {
 
     expect(service.save([installation])).toBeTrue();
     expect(storage.getItem(DASHBOARD_STORAGE_KEY)).toBeNull();
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).not.toBeNull();
+    expect(storage.length).toBe(1);
 
     const result = service.load();
 
@@ -73,12 +68,21 @@ describe('WidgetInstallationPersistenceService', () => {
         },
       ],
     });
-    storage.setItem(WIDGET_INSTALLATIONS_STORAGE_KEY, savedValue);
+    expect(service.save([])).toBeTrue();
+    const storageKey = storage.key(0);
+
+    if (storageKey === null) {
+      throw new Error(
+        'Widget Installation persistence did not create storage.',
+      );
+    }
+
+    storage.setItem(storageKey, savedValue);
 
     expect(service.load()).toEqual({
       status: 'recovery',
       message: 'Saved Widget Installations are invalid.',
     });
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBe(savedValue);
+    expect(storage.getItem(storageKey)).toBe(savedValue);
   });
 });

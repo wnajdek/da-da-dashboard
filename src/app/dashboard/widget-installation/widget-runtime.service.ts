@@ -1,10 +1,14 @@
 import { inject, Injectable, InjectionToken, signal } from '@angular/core';
 import type { Provider, Signal } from '@angular/core';
-import {
-  WidgetInstallationPersistenceService,
-  type WidgetInstallation,
-} from './widget-installation-persistence.service';
 import { normalizeHttpUrl, validateWidgetManifest } from './widget-manifest';
+import {
+  WIDGET_INSTALLATION_PERSISTENCE,
+  type WidgetInstallation,
+  type WidgetInstallationFeedback,
+  type WidgetInstallationRejection,
+  type WidgetInstallationRemovalResult,
+  type WidgetInstallationResult,
+} from './widget-installation.models';
 
 export interface WidgetManifestSource {
   load(url: string): Promise<unknown>;
@@ -36,28 +40,10 @@ export const WIDGET_ENTRY_BUNDLE_LOADER =
     factory: () => browserWidgetEntryBundleLoader,
   });
 
-export interface WidgetInstallationFeedback {
-  readonly status: 'success' | 'error';
-  readonly message: string;
-}
-
-export type WidgetInstallationRejection = {
-  readonly status: 'rejected';
-  readonly message: string;
-};
-
-export type WidgetInstallationResult =
-  | { readonly status: 'installed'; readonly installation: WidgetInstallation }
-  | WidgetInstallationRejection;
-
-export type WidgetInstallationRemovalResult =
-  | { readonly status: 'removed'; readonly installation: WidgetInstallation }
-  | WidgetInstallationRejection;
-
 @Injectable({ providedIn: 'root' })
 export class WidgetRuntimeService {
   private readonly installationPersistence = inject(
-    WidgetInstallationPersistenceService,
+    WIDGET_INSTALLATION_PERSISTENCE,
   );
   private readonly installationsState = signal<readonly WidgetInstallation[]>(
     [],

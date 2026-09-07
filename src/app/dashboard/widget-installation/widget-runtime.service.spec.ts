@@ -8,11 +8,15 @@ import {
 } from './widget-runtime.service';
 import { DASHBOARD_STORAGE } from '../workspace/dashboard-persistence.service';
 import {
-  WIDGET_INSTALLATIONS_STORAGE,
-  WIDGET_INSTALLATIONS_STORAGE_KEY,
+  WidgetInstallationPersistenceService,
+  provideWidgetInstallationPersistence,
 } from './widget-installation-persistence.service';
 import { MemoryStorage } from '../../testing/memory-storage';
-import type { WidgetInstallation } from './widget-installation-persistence.service';
+import {
+  WIDGET_INSTALLATION_PERSISTENCE,
+  type WidgetInstallation,
+  type WidgetInstallationPersistence,
+} from './widget-installation.models';
 
 describe('WidgetRuntimeService', () => {
   const installation: WidgetInstallation = {
@@ -78,19 +82,18 @@ describe('WidgetRuntimeService', () => {
 
   it('removes an installation while keeping the persisted installation snapshot valid', () => {
     const storage = new MemoryStorage();
-    storage.setItem(
-      WIDGET_INSTALLATIONS_STORAGE_KEY,
-      JSON.stringify({ schemaVersion: 1, installations: [installation] }),
-    );
     configure(storage, { load: jasmine.createSpy('load') });
+    expect(
+      TestBed.inject(WidgetInstallationPersistenceService).save([installation]),
+    ).toBeTrue();
     const runtime = TestBed.inject(WidgetRuntimeService);
 
     const result = runtime.removeInstallation(installation.type);
 
     expect(result).toEqual({ status: 'removed', installation });
     expect(runtime.installations()).toEqual([]);
-    expect(storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY)).toBe(
-      JSON.stringify({ schemaVersion: 1, installations: [] }),
+    expect(TestBed.inject(WidgetInstallationPersistenceService).load()).toEqual(
+      { status: 'ready', installations: [] },
     );
     expect(runtime.feedback()).toEqual({
       status: 'success',
@@ -99,13 +102,34 @@ describe('WidgetRuntimeService', () => {
     });
   });
 
+  it('restores installations through the installation persistence contract', () => {
+    const persistence = jasmine.createSpyObj<WidgetInstallationPersistence>(
+      'WidgetInstallationPersistence',
+      ['load', 'save'],
+    );
+    persistence.load.and.returnValue({
+      status: 'ready',
+      installations: [installation],
+    });
+    configure(
+      new MemoryStorage(),
+      { load: jasmine.createSpy('load') },
+      ['https://widgets.example.test'],
+      persistence,
+    );
+
+    const runtime = TestBed.inject(WidgetRuntimeService);
+
+    expect(runtime.installations()).toEqual([installation]);
+    expect(persistence.load).toHaveBeenCalledOnceWith();
+  });
+
   it('keeps an installation available when its removal cannot be persisted', () => {
     const storage = new MemoryStorage();
-    storage.setItem(
-      WIDGET_INSTALLATIONS_STORAGE_KEY,
-      JSON.stringify({ schemaVersion: 1, installations: [installation] }),
-    );
     configure(storage, { load: jasmine.createSpy('load') });
+    expect(
+      TestBed.inject(WidgetInstallationPersistenceService).save([installation]),
+    ).toBeTrue();
     const runtime = TestBed.inject(WidgetRuntimeService);
     spyOn(storage, 'setItem').and.throwError('storage unavailable');
 
@@ -127,6 +151,7 @@ function configure(
   storage: MemoryStorage,
   loader: WidgetEntryBundleLoader,
   trustedOrigins: readonly string[] = ['https://widgets.example.test'],
+  persistence?: WidgetInstallationPersistence,
 ): void {
   TestBed.configureTestingModule({
     providers: [
@@ -134,7 +159,15 @@ function configure(
       { provide: DASHBOARD_STORAGE, useValue: storage },
       { provide: TRUSTED_MANIFEST_ORIGINS, useValue: trustedOrigins },
       { provide: WIDGET_ENTRY_BUNDLE_LOADER, useValue: loader },
-      { provide: WIDGET_INSTALLATIONS_STORAGE, useValue: storage },
+      provideWidgetInstallationPersistence(),
+      ...(persistence === undefined
+        ? []
+        : [
+            {
+              provide: WIDGET_INSTALLATION_PERSISTENCE,
+              useValue: persistence,
+            },
+          ]),
     ],
   });
 }
