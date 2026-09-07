@@ -1,0 +1,58 @@
+<section
+  #grid
+  class="grid-stack"
+  [class.grid-stack--single-column]="narrowScreen()"
+  aria-label="Dashboard widgets"
+>
+  @for (widget of dashboard().widgets; track widget.id) {
+    @let gridWidget = gridStackWidget(widget);
+    @let installation = installationFor(widget.type);
+    <section
+      class="grid-stack-item"
+      [attr.gs-id]="gridWidget.id"
+      [attr.gs-x]="gridWidget.x"
+      [attr.gs-y]="gridWidget.y"
+      [attr.gs-w]="gridWidget.w"
+      [attr.gs-h]="gridWidget.h"
+    >
+      <div class="grid-stack-item-content">
+        @if (installation; as resolvedInstallation) {
+          <app-widget-element
+            [installation]="resolvedInstallation"
+            [widgetId]="widget.id"
+            [configuration]="widget.configuration"
+            (changed)="widgetConfigurationChanged.emit($event)"
+            (removed)="widgetRemoved.emit(widget.id)"
+          />
+        } @else {
+          <app-unavailable-widget-card
+            [widgetType]="widget.type"
+            [configuration]="widget.configuration"
+            (removed)="widgetRemoved.emit(widget.id)"
+          />
+        }
+        <div class="widget-controls">
+          <button
+            type="button"
+            class="widget-drag-handle"
+            data-testid="move-widget-instance"
+            aria-label="Move widget"
+          >
+            Move
+          </button>
+          @if (installation) {
+            <button
+              type="button"
+              class="remove-widget"
+              data-testid="remove-widget-instance"
+              aria-label="Remove widget"
+              (click)="widgetRemoved.emit(widget.id)"
+            >
+              Remove widget
+            </button>
+          }
+        </div>
+      </div>
+    </section>
+  }
+</section>

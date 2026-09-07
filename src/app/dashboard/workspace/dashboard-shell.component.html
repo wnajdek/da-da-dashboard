@@ -1,0 +1,141 @@
+<main class="dashboard">
+  @if (store.recoveryMessage(); as recoveryMessage) {
+    <section class="recovery" aria-labelledby="recovery-title">
+      <p class="eyebrow">Dashboard recovery</p>
+      <h1 id="recovery-title">Saved Dashboard needs attention</h1>
+      <p>{{ recoveryMessage }}</p>
+      <button type="button" (click)="store.resetToDefaults()">
+        Reset to defaults
+      </button>
+    </section>
+  } @else if (store.dashboard(); as dashboard) {
+    <header>
+      <p class="eyebrow">Dashboard</p>
+      <h1>{{ dashboard.title }}</h1>
+      <p class="subtitle">A workspace for your installed Widgets.</p>
+    </header>
+
+    <form
+      class="install-widget"
+      data-testid="install-widget-form"
+      novalidate
+      (submit)="installManifest($event)"
+    >
+      <div class="install-widget-field">
+        <label for="manifest-url">Widget Manifest URL</label>
+        <input
+          id="manifest-url"
+          data-testid="manifest-url"
+          type="url"
+          autocomplete="url"
+          placeholder="https://widgets.example.test/manifest.json"
+          [value]="manifestUrl()"
+          (input)="updateManifestUrl($event)"
+        />
+      </div>
+      <button type="submit" [disabled]="runtime.isInstalling()">
+        @if (runtime.isInstalling()) {
+          Installing…
+        } @else {
+          Install Widget
+        }
+      </button>
+    </form>
+
+    @if (runtime.feedback(); as feedback) {
+      <p
+        class="installation-feedback"
+        data-testid="widget-installation-status"
+        role="status"
+        [class.installation-feedback--error]="feedback.status === 'error'"
+      >
+        {{ feedback.message }}
+      </p>
+    }
+
+    @if (runtime.installations().length > 0) {
+      <section
+        class="available-widgets"
+        data-testid="available-widgets"
+        aria-labelledby="available-widgets-title"
+      >
+        <div>
+          <p class="eyebrow">Widget Catalog</p>
+          <h2 id="available-widgets-title">Available Widgets</h2>
+        </div>
+        <div class="available-widget-list">
+          @for (
+            installation of runtime.installations();
+            track installation.type
+          ) {
+            <article
+              class="available-widget"
+              data-testid="available-widget"
+            >
+              <p class="widget-kind">{{ installation.type }}</p>
+              <h3>{{ installation.displayName }}</h3>
+              @if (installation.description) {
+                <p class="widget-caption">{{ installation.description }}</p>
+              }
+              <dl class="widget-metadata">
+                <div>
+                  <dt>Version</dt>
+                  <dd>{{ installation.version }}</dd>
+                </div>
+                <div>
+                  <dt>Widget Element</dt>
+                  <dd>{{ installation.elementTag }}</dd>
+                </div>
+                <div>
+                  <dt>Preferred size</dt>
+                  <dd>
+                    {{ installation.preferredLayout.w }} ×
+                    {{ installation.preferredLayout.h }}
+                  </dd>
+                </div>
+              </dl>
+              <button
+                type="button"
+                data-testid="add-widget"
+                (click)="addWidget(installation)"
+              >
+                Add Widget
+              </button>
+              <button
+                type="button"
+                class="remove-installation"
+                data-testid="remove-widget-installation"
+                [attr.aria-label]="
+                  'Remove ' + installation.displayName + ' installation'
+                "
+                (click)="removeInstallation(installation)"
+              >
+                Remove installation
+              </button>
+            </article>
+          }
+        </div>
+      </section>
+    }
+
+    <app-dashboard-grid
+      [dashboard]="dashboard"
+      (layoutCommitted)="store.commitGridLayoutChange($event)"
+      (widgetConfigurationChanged)="store.updateWidgetConfiguration($event)"
+      (widgetRemoved)="store.removeWidget($event)"
+    />
+
+    @if (store.canUndoRemoval()) {
+      <aside class="removal-notice" aria-live="polite">
+        <span>Widget removed.</span>
+        <button
+          type="button"
+          data-testid="undo-removal"
+          (click)="store.undoWidgetRemoval()"
+        >
+          Undo
+        </button>
+      </aside>
+    }
+  }
+</main>
