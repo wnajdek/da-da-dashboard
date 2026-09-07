@@ -17,11 +17,6 @@ import {
 import { DashboardStore } from './dashboard.store';
 import { WIDGET_INSTALLATIONS_STORAGE_KEY } from './widget-installation-persistence.service';
 import {
-  WEATHER_DATA_SOURCE,
-  type WeatherDataSource,
-} from '../../../projects/weather-widget/src/weather-data.service';
-import { createWeatherWidgetElement } from '../../../projects/weather-widget/src/weather-widget-element';
-import {
   TRUSTED_MANIFEST_ORIGINS,
   WIDGET_ENTRY_BUNDLE_LOADER,
   WIDGET_MANIFEST_SOURCE,
@@ -723,27 +718,12 @@ describe('DashboardShellComponent', () => {
 
   it('adds, renders, and persists a Widget Element configuration replacement', async () => {
     const storage = new MemoryStorage();
-    const weatherSource: WeatherDataSource = {
-      read: jasmine.createSpy('read').and.resolveTo({
-        location: 'Warsaw',
-        temperature: 21.5,
-        temperatureUnit: '°C',
-        humidity: 55,
-        weatherCode: 1,
-      }),
-    };
-    const weatherApplication = await createApplication({
-      providers: [
-        provideZonelessChangeDetection(),
-        { provide: WEATHER_DATA_SOURCE, useValue: weatherSource },
-      ],
-    });
     const loader: WidgetEntryBundleLoader = {
       load: jasmine.createSpy('load').and.callFake(async () => {
         if (customElements.get('trusted-weather-widget') === undefined) {
           customElements.define(
             'trusted-weather-widget',
-            createWeatherWidgetElement(Promise.resolve(weatherApplication)),
+            createContractTestWidgetElement(),
           );
         }
       }),
@@ -824,7 +804,6 @@ describe('DashboardShellComponent', () => {
     expect(
       JSON.stringify(reloadedStore.dashboard()?.widgets[0].configuration),
     ).toBe('{"location":"Kraków","units":"metric"}');
-    weatherApplication.destroy();
   });
 
   it('keeps runtime Widget configuration and layout through removal, undo, and reload', async () => {
@@ -1059,6 +1038,43 @@ function expectEmptyDashboardSnapshot(storage: MemoryStorage): void {
       widgets: [],
     },
   });
+}
+
+function createContractTestWidgetElement(): CustomElementConstructor {
+  return class extends HTMLElement {
+    private configurationValue: WidgetConfiguration = {};
+
+    get configuration(): WidgetConfiguration {
+      return this.configurationValue;
+    }
+
+    set configuration(value: WidgetConfiguration) {
+      this.configurationValue = value;
+      this.querySelector<HTMLInputElement>('input')?.setAttribute(
+        'value',
+        typeof value['location'] === 'string' ? value['location'] : '',
+      );
+    }
+
+    connectedCallback(): void {
+      this.innerHTML =
+        '<form><input type="text" /><button type="submit">Save settings</button></form>';
+      this.querySelector<HTMLFormElement>('form')?.addEventListener(
+        'submit',
+        (event) => {
+          event.preventDefault();
+          const location = this.querySelector<HTMLInputElement>('input')?.value;
+          this.dispatchEvent(
+            new CustomEvent('configuration-changed', {
+              bubbles: true,
+              detail: { location, units: 'metric' },
+            }),
+          );
+        },
+      );
+      this.configuration = this.configurationValue;
+    }
+  };
 }
 
 function waitForWidgetElement(): Promise<void> {

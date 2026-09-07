@@ -1,6 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { WEATHER_DATA_SOURCE } from '../../../projects/weather-widget/src/weather-data.service';
+import { WEATHER_DATA_SOURCE } from './weather-data.service';
 
 describe('WeatherDataSource', () => {
   beforeEach(() => {
@@ -86,3 +86,4 @@ function jsonResponse(value: unknown, ok = true): Response {
     json: () => Promise.resolve(value),
   } as Response;
 }
+

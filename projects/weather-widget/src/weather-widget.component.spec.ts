@@ -1,16 +1,16 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { createApplication } from '@angular/platform-browser';
-import { createWeatherWidgetElement } from '../../../projects/weather-widget/src/weather-widget-element';
-import { WeatherWidgetComponent } from '../../../projects/weather-widget/src/weather-widget.component';
+import { createWeatherWidgetElement } from './weather-widget-element';
+import { WeatherWidgetComponent } from './weather-widget.component';
 import {
   WEATHER_DATA_SOURCE,
   WeatherDataSource,
-} from '../../../projects/weather-widget/src/weather-data.service';
+} from './weather-data.service';
 import type {
   WeatherConditions,
   WeatherConfiguration,
-} from '../../../projects/weather-widget/src/weather-widget.models';
+} from './weather-widget.models';
 
 describe('WeatherWidgetComponent', () => {
   let fixture: ComponentFixture<WeatherWidgetComponent>;
@@ -283,3 +283,4 @@ describe('WeatherWidgetComponent', () => {
 function waitForWidgetElement(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve));
 }
+

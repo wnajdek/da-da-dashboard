@@ -4,10 +4,9 @@
 
 **Blocked by:** 01/Standardize TypeScript private members.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Weather Widget behavior and data-source tests live with the Weather Widget application rather than the Dashboard feature.
-- [ ] The Weather Widget has a dedicated test target that runs its tests independently.
-- [ ] Dashboard tests interact with test Widgets only through the documented Widget Element interface.
-- [ ] The Dashboard test target, Weather Widget test target, and both production builds pass independently.
-
+- [x] Weather Widget behavior and data-source tests live with the Weather Widget application rather than the Dashboard feature.
+- [x] The Weather Widget has a dedicated test target that runs its tests independently.
+- [x] Dashboard tests interact with test Widgets only through the documented Widget Element interface.
+- [x] The Dashboard test target, Weather Widget test target, and both production builds pass independently.
