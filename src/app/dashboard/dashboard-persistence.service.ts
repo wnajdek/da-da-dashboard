@@ -24,13 +24,13 @@ export type DashboardLoadResult =
 
 @Injectable({ providedIn: 'root' })
 export class DashboardPersistenceService {
-  readonly #storage = inject(DASHBOARD_STORAGE);
+  private readonly storage = inject(DASHBOARD_STORAGE);
 
   load(): DashboardLoadResult {
     let savedSnapshot: string | null;
 
     try {
-      savedSnapshot = this.#storage.getItem(DASHBOARD_STORAGE_KEY);
+      savedSnapshot = this.storage.getItem(DASHBOARD_STORAGE_KEY);
     } catch {
       return {
         status: 'recovery',
@@ -76,7 +76,7 @@ export class DashboardPersistenceService {
     const snapshot: DashboardSnapshotV1 = { schemaVersion: 1, dashboard };
 
     try {
-      this.#storage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(snapshot));
+      this.storage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(snapshot));
       return true;
     } catch {
       return false;

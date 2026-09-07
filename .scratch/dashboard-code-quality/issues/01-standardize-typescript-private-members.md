@@ -4,10 +4,9 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] All ECMAScript `#` private members in production and test code are migrated to TypeScript `private` members without changing behavior.
-- [ ] Angular members referenced only by a template are `protected`; inputs, outputs, and intentional module interfaces remain publicly accessible.
-- [ ] No new test reaches through a private member to verify implementation details.
-- [ ] Repository guidance explicitly documents the convention and the full test suite and production builds remain green.
-
+- [x] All ECMAScript `#` private members in production and test code are migrated to TypeScript `private` members without changing behavior.
+- [x] Angular members referenced only by a template are `protected`; inputs, outputs, and intentional module interfaces remain publicly accessible.
+- [x] No new test reaches through a private member to verify implementation details.
+- [x] Repository guidance explicitly documents the convention and the full test suite and production builds remain green.

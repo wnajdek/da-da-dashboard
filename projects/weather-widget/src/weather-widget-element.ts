@@ -5,70 +5,70 @@ export function createWeatherWidgetElement(
   application: Promise<ApplicationRef>,
 ): CustomElementConstructor {
   return class extends HTMLElement {
-    #component: ReturnType<
+    private component: ReturnType<
       typeof createComponent<WeatherWidgetComponent>
     > | null = null;
-    #application: ApplicationRef | null = null;
-    #attached = false;
-    #connected = false;
-    #configuration: unknown = undefined;
+    private application: ApplicationRef | null = null;
+    private attached = false;
+    private connected = false;
+    private configurationValue: unknown = undefined;
 
     get configuration(): unknown {
-      return this.#configuration;
+      return this.configurationValue;
     }
 
     set configuration(value: unknown) {
-      this.#configuration = value;
-      this.#component?.setInput('configuration', value);
+      this.configurationValue = value;
+      this.component?.setInput('configuration', value);
 
-      if (this.#attached && this.#component !== null) {
-        this.#component.changeDetectorRef.detectChanges();
+      if (this.attached && this.component !== null) {
+        this.component.changeDetectorRef.detectChanges();
       }
     }
 
     connectedCallback(): void {
-      this.#connected = true;
-      void this.#attach();
+      this.connected = true;
+      void this.attach();
     }
 
     disconnectedCallback(): void {
-      this.#connected = false;
+      this.connected = false;
 
       if (
-        this.#attached &&
-        this.#application !== null &&
-        this.#component !== null
+        this.attached &&
+        this.application !== null &&
+        this.component !== null
       ) {
-        this.#application.detachView(this.#component.hostView);
-        this.#attached = false;
+        this.application.detachView(this.component.hostView);
+        this.attached = false;
       }
     }
 
-    async #attach(): Promise<void> {
+    private async attach(): Promise<void> {
       const app = await application;
 
-      if (!this.#connected) {
+      if (!this.connected) {
         return;
       }
 
-      if (this.#component === null) {
-        this.#component = createComponent(WeatherWidgetComponent, {
+      if (this.component === null) {
+        this.component = createComponent(WeatherWidgetComponent, {
           environmentInjector: app.injector,
           hostElement: this,
         });
       }
 
-      this.#application = app;
+      this.application = app;
 
-      if (!this.#attached) {
-        app.attachView(this.#component.hostView);
-        this.#attached = true;
+      if (!this.attached) {
+        app.attachView(this.component.hostView);
+        this.attached = true;
       }
 
-      if (this.#configuration !== undefined) {
-        this.#component.setInput('configuration', this.#configuration);
+      if (this.configurationValue !== undefined) {
+        this.component.setInput('configuration', this.configurationValue);
       }
-      this.#component.changeDetectorRef.detectChanges();
+      this.component.changeDetectorRef.detectChanges();
     }
   };
 }

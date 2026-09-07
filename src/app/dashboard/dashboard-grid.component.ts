@@ -99,22 +99,22 @@ export class DashboardGridComponent implements AfterViewInit {
 
   private readonly gridElement =
     viewChild.required<ElementRef<HTMLElement>>('grid');
-  readonly #destroyRef = inject(DestroyRef);
-  readonly #injector = inject(Injector);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
   private readonly runtime = inject(WidgetRuntimeService);
-  #grid: GridStack | null = null;
+  private grid: GridStack | null = null;
 
   constructor() {
     effect(() => {
       this.dashboard();
-      afterNextRender(() => this.#synchronizeGridItems(), {
-        injector: this.#injector,
+      afterNextRender(() => this.synchronizeGridItems(), {
+        injector: this.injector,
       });
     });
   }
 
   ngAfterViewInit(): void {
-    this.#grid = GridStack.init(
+    this.grid = GridStack.init(
       {
         column: 12,
         cellHeight: 96,
@@ -123,9 +123,9 @@ export class DashboardGridComponent implements AfterViewInit {
       },
       this.gridElement().nativeElement,
     );
-    this.#grid.on('dragstop resizestop', () => this.#commitFinalLayout());
-    this.#updateGridInteractivity();
-    this.#destroyRef.onDestroy(() => this.#grid?.destroy(false));
+    this.grid.on('dragstop resizestop', () => this.commitFinalLayout());
+    this.updateGridInteractivity();
+    this.destroyRef.onDestroy(() => this.grid?.destroy(false));
   }
 
   @HostListener('window:resize')
@@ -137,7 +137,7 @@ export class DashboardGridComponent implements AfterViewInit {
     }
 
     this.narrowScreen.set(isNarrowScreen);
-    this.#updateGridInteractivity();
+    this.updateGridInteractivity();
   }
 
   protected gridStackWidget(widget: WidgetInstance) {
@@ -148,8 +148,8 @@ export class DashboardGridComponent implements AfterViewInit {
     return this.runtime.installationFor(type);
   }
 
-  #synchronizeGridItems(): void {
-    const grid = this.#grid;
+  private synchronizeGridItems(): void {
+    const grid = this.grid;
 
     if (grid === null) {
       return;
@@ -193,8 +193,8 @@ export class DashboardGridComponent implements AfterViewInit {
     }
   }
 
-  #commitFinalLayout(): void {
-    const grid = this.#grid;
+  private commitFinalLayout(): void {
+    const grid = this.grid;
 
     if (grid === null) {
       return;
@@ -207,16 +207,16 @@ export class DashboardGridComponent implements AfterViewInit {
     this.layoutCommitted.emit(changes);
   }
 
-  #updateGridInteractivity(): void {
-    if (this.#grid === null) {
+  private updateGridInteractivity(): void {
+    if (this.grid === null) {
       return;
     }
 
     if (this.narrowScreen()) {
-      this.#grid.disable();
+      this.grid.disable();
       return;
     }
 
-    this.#grid.enable();
+    this.grid.enable();
   }
 }

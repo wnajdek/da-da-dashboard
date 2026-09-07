@@ -33,13 +33,13 @@ export type WidgetInstallationsLoadResult =
 
 @Injectable({ providedIn: 'root' })
 export class WidgetInstallationPersistenceService {
-  readonly #storage = inject(WIDGET_INSTALLATIONS_STORAGE);
+  private readonly storage = inject(WIDGET_INSTALLATIONS_STORAGE);
 
   load(): WidgetInstallationsLoadResult {
     let savedSnapshot: string | null;
 
     try {
-      savedSnapshot = this.#storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY);
+      savedSnapshot = this.storage.getItem(WIDGET_INSTALLATIONS_STORAGE_KEY);
     } catch {
       return {
         status: 'recovery',
@@ -109,7 +109,7 @@ export class WidgetInstallationPersistenceService {
     };
 
     try {
-      this.#storage.setItem(
+      this.storage.setItem(
         WIDGET_INSTALLATIONS_STORAGE_KEY,
         JSON.stringify(snapshot),
       );

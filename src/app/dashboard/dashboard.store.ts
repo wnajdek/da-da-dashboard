@@ -21,41 +21,43 @@ interface PendingWidgetRemoval {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardStore {
-  readonly #dashboard = signal<Dashboard | null>(null);
-  readonly #recoveryMessage = signal<string | null>(null);
-  readonly #pendingWidgetRemoval = signal<PendingWidgetRemoval | null>(null);
-  #undoRemovalTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly dashboardState = signal<Dashboard | null>(null);
+  private readonly recoveryMessageState = signal<string | null>(null);
+  private readonly pendingWidgetRemovalState =
+    signal<PendingWidgetRemoval | null>(null);
+  private undoRemovalTimer: ReturnType<typeof setTimeout> | null = null;
 
-  readonly dashboard: Signal<Dashboard | null> = this.#dashboard.asReadonly();
+  readonly dashboard: Signal<Dashboard | null> =
+    this.dashboardState.asReadonly();
   readonly recoveryMessage: Signal<string | null> =
-    this.#recoveryMessage.asReadonly();
+    this.recoveryMessageState.asReadonly();
   readonly canUndoRemoval = computed(
-    () => this.#pendingWidgetRemoval() !== null,
+    () => this.pendingWidgetRemovalState() !== null,
   );
 
   constructor(private readonly persistence: DashboardPersistenceService) {
     const result = this.persistence.load();
 
     if (result.status === 'ready') {
-      this.#dashboard.set(result.dashboard);
+      this.dashboardState.set(result.dashboard);
       return;
     }
 
     if (result.status === 'recovery') {
-      this.#recoveryMessage.set(result.message);
+      this.recoveryMessageState.set(result.message);
       return;
     }
 
-    this.#loadSeedDashboard();
+    this.loadSeedDashboard();
   }
 
   resetToDefaults(): void {
-    this.#clearPendingWidgetRemoval();
-    this.#loadSeedDashboard();
+    this.clearPendingWidgetRemoval();
+    this.loadSeedDashboard();
   }
 
   addWidget(creation: WidgetCreation): void {
-    const dashboard = this.#dashboard();
+    const dashboard = this.dashboardState();
 
     if (dashboard === null || !isWidgetCreation(creation)) {
       return;
@@ -67,7 +69,7 @@ export class DashboardStore {
       configuration: creation.configuration,
       layout: {
         x: 0,
-        y: this.#nextWidgetY(dashboard),
+        y: this.nextWidgetY(dashboard),
         w: creation.preferredLayout.w,
         h: creation.preferredLayout.h,
       },
@@ -78,12 +80,12 @@ export class DashboardStore {
     };
 
     if (this.persistence.save(updatedDashboard)) {
-      this.#dashboard.set(updatedDashboard);
+      this.dashboardState.set(updatedDashboard);
     }
   }
 
   updateWidgetConfiguration(change: WidgetConfigurationChange): void {
-    const dashboard = this.#dashboard();
+    const dashboard = this.dashboardState();
 
     if (dashboard === null || !isWidgetConfigurationChange(change)) {
       return;
@@ -107,12 +109,12 @@ export class DashboardStore {
     };
 
     if (this.persistence.save(updatedDashboard)) {
-      this.#dashboard.set(updatedDashboard);
+      this.dashboardState.set(updatedDashboard);
     }
   }
 
   removeWidget(id: string): void {
-    const dashboard = this.#dashboard();
+    const dashboard = this.dashboardState();
 
     if (dashboard === null) {
       return;
@@ -134,18 +136,18 @@ export class DashboardStore {
       return;
     }
 
-    this.#clearPendingWidgetRemoval();
-    this.#dashboard.set(updatedDashboard);
-    this.#pendingWidgetRemoval.set({ widget, index });
-    this.#undoRemovalTimer = setTimeout(() => {
-      this.#pendingWidgetRemoval.set(null);
-      this.#undoRemovalTimer = null;
+    this.clearPendingWidgetRemoval();
+    this.dashboardState.set(updatedDashboard);
+    this.pendingWidgetRemovalState.set({ widget, index });
+    this.undoRemovalTimer = setTimeout(() => {
+      this.pendingWidgetRemovalState.set(null);
+      this.undoRemovalTimer = null;
     }, WIDGET_REMOVAL_UNDO_DURATION_MS);
   }
 
   undoWidgetRemoval(): void {
-    const dashboard = this.#dashboard();
-    const pendingRemoval = this.#pendingWidgetRemoval();
+    const dashboard = this.dashboardState();
+    const pendingRemoval = this.pendingWidgetRemovalState();
 
     if (dashboard === null || pendingRemoval === null) {
       return;
@@ -161,13 +163,13 @@ export class DashboardStore {
     };
 
     if (this.persistence.save(restoredDashboard)) {
-      this.#dashboard.set(restoredDashboard);
-      this.#clearPendingWidgetRemoval();
+      this.dashboardState.set(restoredDashboard);
+      this.clearPendingWidgetRemoval();
     }
   }
 
   commitGridLayoutChange(changes: readonly WidgetLayoutChange[]): void {
-    const dashboard = this.#dashboard();
+    const dashboard = this.dashboardState();
 
     if (dashboard === null || changes.length === 0) {
       return;
@@ -194,33 +196,35 @@ export class DashboardStore {
     };
 
     if (changed && this.persistence.save(updatedDashboard)) {
-      this.#dashboard.set(updatedDashboard);
+      this.dashboardState.set(updatedDashboard);
     }
   }
 
-  #loadSeedDashboard(): void {
+  private loadSeedDashboard(): void {
     const dashboard = createSeedDashboard();
 
     if (!this.persistence.save(dashboard)) {
-      this.#dashboard.set(null);
-      this.#recoveryMessage.set('The Dashboard could not be saved locally.');
+      this.dashboardState.set(null);
+      this.recoveryMessageState.set(
+        'The Dashboard could not be saved locally.',
+      );
       return;
     }
 
-    this.#dashboard.set(dashboard);
-    this.#recoveryMessage.set(null);
+    this.dashboardState.set(dashboard);
+    this.recoveryMessageState.set(null);
   }
 
-  #clearPendingWidgetRemoval(): void {
-    if (this.#undoRemovalTimer !== null) {
-      clearTimeout(this.#undoRemovalTimer);
-      this.#undoRemovalTimer = null;
+  private clearPendingWidgetRemoval(): void {
+    if (this.undoRemovalTimer !== null) {
+      clearTimeout(this.undoRemovalTimer);
+      this.undoRemovalTimer = null;
     }
 
-    this.#pendingWidgetRemoval.set(null);
+    this.pendingWidgetRemovalState.set(null);
   }
 
-  #nextWidgetY(dashboard: Dashboard): number {
+  private nextWidgetY(dashboard: Dashboard): number {
     return dashboard.widgets.reduce(
       (bottom, widget) => Math.max(bottom, widget.layout.y + widget.layout.h),
       0,

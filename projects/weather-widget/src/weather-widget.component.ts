@@ -211,21 +211,21 @@ export class WeatherWidgetComponent {
     'loading' | 'ready' | 'invalid' | 'error'
   >('loading');
   protected readonly conditions = signal<WeatherConditions | null>(null);
-  readonly #weatherData = inject(WEATHER_DATA_SOURCE);
-  readonly #hostElement = inject(ElementRef<HTMLElement>);
-  #requestRevision = 0;
-  #lastRequestedConfiguration: WeatherConfiguration | null = null;
+  private readonly weatherData = inject(WEATHER_DATA_SOURCE);
+  private readonly hostElement = inject(ElementRef<HTMLElement>);
+  private requestRevision = 0;
+  private lastRequestedConfiguration: WeatherConfiguration | null = null;
 
   constructor() {
     effect(() => {
       const result = readConfiguration(this.configuration());
 
       if (result.status === 'invalid') {
-        this.#showInvalidConfiguration(result);
+        this.showInvalidConfiguration(result);
         return;
       }
 
-      this.#applyConfiguration(result.configuration);
+      this.applyConfiguration(result.configuration);
     });
   }
 
@@ -251,7 +251,7 @@ export class WeatherWidgetComponent {
     const units = this.draftUnits();
 
     if (location.length === 0) {
-      this.#showInvalidConfiguration({
+      this.showInvalidConfiguration({
         status: 'invalid',
         location,
         units,
@@ -261,8 +261,8 @@ export class WeatherWidgetComponent {
     }
 
     const configuration: WeatherConfiguration = { location, units };
-    this.#applyConfiguration(configuration, true);
-    this.#hostElement.nativeElement.dispatchEvent(
+    this.applyConfiguration(configuration, true);
+    this.hostElement.nativeElement.dispatchEvent(
       new CustomEvent('configuration-changed', {
         bubbles: true,
         detail: configuration,
@@ -270,31 +270,31 @@ export class WeatherWidgetComponent {
     );
   }
 
-  #applyConfiguration(
+  private applyConfiguration(
     configuration: WeatherConfiguration,
     force = false,
   ): void {
     if (
       !force &&
-      this.#lastRequestedConfiguration !== null &&
-      areConfigurationsEqual(configuration, this.#lastRequestedConfiguration)
+      this.lastRequestedConfiguration !== null &&
+      areConfigurationsEqual(configuration, this.lastRequestedConfiguration)
     ) {
       return;
     }
 
-    this.#lastRequestedConfiguration = configuration;
+    this.lastRequestedConfiguration = configuration;
     this.draftLocation.set(configuration.location);
     this.draftUnits.set(configuration.units);
     this.validationMessage.set(null);
     this.conditions.set(null);
     this.weatherState.set('loading');
-    const revision = ++this.#requestRevision;
+    const revision = ++this.requestRevision;
     let weatherRequest: Promise<WeatherConditions>;
 
     try {
-      weatherRequest = this.#weatherData.read(configuration);
+      weatherRequest = this.weatherData.read(configuration);
     } catch {
-      if (revision === this.#requestRevision) {
+      if (revision === this.requestRevision) {
         this.weatherState.set('error');
       }
       return;
@@ -302,13 +302,13 @@ export class WeatherWidgetComponent {
 
     void Promise.resolve(weatherRequest).then(
       (conditions) => {
-        if (revision === this.#requestRevision) {
+        if (revision === this.requestRevision) {
           this.conditions.set(conditions);
           this.weatherState.set('ready');
         }
       },
       () => {
-        if (revision === this.#requestRevision) {
+        if (revision === this.requestRevision) {
           this.conditions.set(null);
           this.weatherState.set('error');
         }
@@ -316,9 +316,9 @@ export class WeatherWidgetComponent {
     );
   }
 
-  #showInvalidConfiguration(result: InvalidConfiguration): void {
-    this.#requestRevision += 1;
-    this.#lastRequestedConfiguration = null;
+  private showInvalidConfiguration(result: InvalidConfiguration): void {
+    this.requestRevision += 1;
+    this.lastRequestedConfiguration = null;
     this.draftLocation.set(result.location);
     this.draftUnits.set(result.units);
     this.validationMessage.set(result.message);

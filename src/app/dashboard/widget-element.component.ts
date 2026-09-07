@@ -71,21 +71,21 @@ export class WidgetElementComponent {
   private readonly runtime = inject(WidgetRuntimeService);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
-  #element: WidgetElement | null = null;
-  #onConfigurationChanged: ((event: Event) => void) | null = null;
-  #mountRevision = 0;
-  #destroyed = false;
+  private element: WidgetElement | null = null;
+  private onConfigurationChanged: ((event: Event) => void) | null = null;
+  private mountRevision = 0;
+  private destroyed = false;
 
   constructor() {
     effect(() => {
       const installation = this.installation();
-      afterNextRender(() => void this.#mount(installation), {
+      afterNextRender(() => void this.mount(installation), {
         injector: this.injector,
       });
     });
 
     effect(() => {
-      const element = this.#element;
+      const element = this.element;
       const configuration = this.configuration();
 
       if (element !== null) {
@@ -94,28 +94,28 @@ export class WidgetElementComponent {
     });
 
     this.destroyRef.onDestroy(() => {
-      this.#destroyed = true;
-      this.#mountRevision += 1;
-      this.#unmount();
+      this.destroyed = true;
+      this.mountRevision += 1;
+      this.unmount();
     });
   }
 
-  async #mount(installation: WidgetInstallation): Promise<void> {
-    const revision = ++this.#mountRevision;
-    this.#unmount();
+  private async mount(installation: WidgetInstallation): Promise<void> {
+    const revision = ++this.mountRevision;
+    this.unmount();
     this.state.set('loading');
 
     try {
       await this.runtime.loadElement(installation);
 
-      if (this.#destroyed || revision !== this.#mountRevision) {
+      if (this.destroyed || revision !== this.mountRevision) {
         return;
       }
 
       const element = document.createElement(
         installation.elementTag,
       ) as WidgetElement;
-      this.#onConfigurationChanged = (event: Event) => {
+      this.onConfigurationChanged = (event: Event) => {
         const detail = (event as CustomEvent<unknown>).detail;
 
         if (isJsonObject(detail)) {
@@ -124,9 +124,9 @@ export class WidgetElementComponent {
       };
       element.addEventListener(
         'configuration-changed',
-        this.#onConfigurationChanged,
+        this.onConfigurationChanged,
       );
-      this.#element = element;
+      this.element = element;
       this.state.set('ready');
       afterNextRender(
         () => {
@@ -134,9 +134,9 @@ export class WidgetElementComponent {
 
           if (
             readyHost === undefined ||
-            this.#element !== element ||
-            this.#destroyed ||
-            revision !== this.#mountRevision
+            this.element !== element ||
+            this.destroyed ||
+            revision !== this.mountRevision
           ) {
             return;
           }
@@ -147,22 +147,22 @@ export class WidgetElementComponent {
         { injector: this.injector },
       );
     } catch {
-      if (!this.#destroyed && revision === this.#mountRevision) {
+      if (!this.destroyed && revision === this.mountRevision) {
         this.state.set('unavailable');
       }
     }
   }
 
-  #unmount(): void {
-    if (this.#element !== null && this.#onConfigurationChanged !== null) {
-      this.#element.removeEventListener(
+  private unmount(): void {
+    if (this.element !== null && this.onConfigurationChanged !== null) {
+      this.element.removeEventListener(
         'configuration-changed',
-        this.#onConfigurationChanged,
+        this.onConfigurationChanged,
       );
     }
 
-    this.#element?.remove();
-    this.#element = null;
-    this.#onConfigurationChanged = null;
+    this.element?.remove();
+    this.element = null;
+    this.onConfigurationChanged = null;
   }
 }

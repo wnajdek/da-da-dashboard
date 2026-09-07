@@ -56,12 +56,16 @@ export type WidgetInstallationRemovalResult =
 
 @Injectable({ providedIn: 'root' })
 export class WidgetRuntimeService {
-  readonly #installations = signal<readonly WidgetInstallation[]>([]);
-  readonly #feedback = signal<WidgetInstallationFeedback | null>(null);
-  readonly #isInstalling = signal(false);
-  readonly #manifestSource = inject(WIDGET_MANIFEST_SOURCE);
-  readonly #entryBundleLoader = inject(WIDGET_ENTRY_BUNDLE_LOADER);
-  readonly #trustedOrigins = new Set(
+  private readonly installationsState = signal<readonly WidgetInstallation[]>(
+    [],
+  );
+  private readonly feedbackState = signal<WidgetInstallationFeedback | null>(
+    null,
+  );
+  private readonly isInstallingState = signal(false);
+  private readonly manifestSource = inject(WIDGET_MANIFEST_SOURCE);
+  private readonly entryBundleLoader = inject(WIDGET_ENTRY_BUNDLE_LOADER);
+  private readonly trustedOrigins = new Set(
     inject(TRUSTED_MANIFEST_ORIGINS)
       .map(normalizeHttpUrl)
       .filter((origin): origin is string => origin !== null)
@@ -69,12 +73,12 @@ export class WidgetRuntimeService {
   );
 
   readonly installations: Signal<readonly WidgetInstallation[]> =
-    this.#installations.asReadonly();
+    this.installationsState.asReadonly();
   readonly feedback: Signal<WidgetInstallationFeedback | null> =
-    this.#feedback.asReadonly();
-  readonly isInstalling: Signal<boolean> = this.#isInstalling.asReadonly();
-  readonly #entryBundlePromises = new Map<string, Promise<void>>();
-  readonly #elementSources = new Map<string, string>();
+    this.feedbackState.asReadonly();
+  readonly isInstalling: Signal<boolean> = this.isInstallingState.asReadonly();
+  private readonly entryBundlePromises = new Map<string, Promise<void>>();
+  private readonly elementSources = new Map<string, string>();
 
   constructor(
     private readonly installationPersistence: WidgetInstallationPersistenceService,
@@ -82,39 +86,39 @@ export class WidgetRuntimeService {
     const result = this.installationPersistence.load();
 
     if (result.status === 'ready') {
-      this.#installations.set(result.installations);
+      this.installationsState.set(result.installations);
       return;
     }
 
     if (result.status === 'recovery') {
-      this.#feedback.set({ status: 'error', message: result.message });
+      this.feedbackState.set({ status: 'error', message: result.message });
     }
   }
 
   async installManifest(input: string): Promise<WidgetInstallationResult> {
-    if (this.#isInstalling()) {
-      return this.#reject(
+    if (this.isInstallingState()) {
+      return this.reject(
         'Another Widget Manifest installation is already in progress.',
       );
     }
 
-    const trustedManifestUrl = this.#trustedManifestUrl(input);
+    const trustedManifestUrl = this.trustedManifestUrl(input);
 
     if (trustedManifestUrl.status !== 'valid') {
-      return this.#reject(trustedManifestUrl.message);
+      return this.reject(trustedManifestUrl.message);
     }
 
     const manifestUrl = trustedManifestUrl.url;
 
-    this.#isInstalling.set(true);
+    this.isInstallingState.set(true);
 
     try {
       let rawManifest: unknown;
 
       try {
-        rawManifest = await this.#manifestSource.load(manifestUrl);
+        rawManifest = await this.manifestSource.load(manifestUrl);
       } catch {
-        return this.#reject('The Widget Manifest could not be read.');
+        return this.reject('The Widget Manifest could not be read.');
       }
 
       let validation: ReturnType<typeof validateWidgetManifest>;
@@ -122,36 +126,36 @@ export class WidgetRuntimeService {
       try {
         validation = validateWidgetManifest(rawManifest, manifestUrl);
       } catch {
-        return this.#reject('The Widget Manifest is invalid.');
+        return this.reject('The Widget Manifest is invalid.');
       }
 
       if (validation.status !== 'valid') {
-        return this.#reject(widgetManifestErrorMessage(validation.reason));
+        return this.reject(widgetManifestErrorMessage(validation.reason));
       }
 
       if (
-        this.#installations().some(
+        this.installationsState().some(
           (installation) => installation.manifestUrl === manifestUrl,
         )
       ) {
-        return this.#reject('This Widget Manifest is already installed.');
+        return this.reject('This Widget Manifest is already installed.');
       }
 
       if (
-        this.#installations().some(
+        this.installationsState().some(
           (installation) => installation.type === validation.manifest.type,
         )
       ) {
-        return this.#reject('This Widget Type is already installed.');
+        return this.reject('This Widget Type is already installed.');
       }
 
       if (
-        this.#installations().some(
+        this.installationsState().some(
           (installation) =>
             installation.elementTag === validation.manifest.elementTag,
         )
       ) {
-        return this.#reject(
+        return this.reject(
           'This Widget Element tag is already assigned to another installed Widget Type.',
         );
       }
@@ -160,26 +164,26 @@ export class WidgetRuntimeService {
         manifestUrl,
         ...validation.manifest,
       };
-      const installations = [...this.#installations(), installation];
+      const installations = [...this.installationsState(), installation];
 
       if (!this.installationPersistence.save(installations)) {
-        return this.#reject(
+        return this.reject(
           'The Widget Installation could not be saved locally.',
         );
       }
 
-      this.#installations.set(installations);
+      this.installationsState.set(installations);
       const message = `Installed “${installation.displayName}”.`;
-      this.#feedback.set({ status: 'success', message });
+      this.feedbackState.set({ status: 'success', message });
 
       return { status: 'installed', installation };
     } finally {
-      this.#isInstalling.set(false);
+      this.isInstallingState.set(false);
     }
   }
 
   installationFor(type: string): WidgetInstallation | undefined {
-    return this.#installations().find(
+    return this.installationsState().find(
       (installation) => installation.type === type,
     );
   }
@@ -188,21 +192,21 @@ export class WidgetRuntimeService {
     const installation = this.installationFor(type);
 
     if (installation === undefined) {
-      return this.#reject('This Widget Type is not installed.');
+      return this.reject('This Widget Type is not installed.');
     }
 
-    const installations = this.#installations().filter(
+    const installations = this.installationsState().filter(
       (candidate) => candidate.type !== type,
     );
 
     if (!this.installationPersistence.save(installations)) {
-      return this.#reject(
+      return this.reject(
         'The Widget Installation could not be removed locally.',
       );
     }
 
-    this.#installations.set(installations);
-    this.#feedback.set({
+    this.installationsState.set(installations);
+    this.feedbackState.set({
       status: 'success',
       message: `Removed “${installation.displayName}”. Existing Widget Instances are now unavailable.`,
     });
@@ -211,11 +215,11 @@ export class WidgetRuntimeService {
   }
 
   async loadElement(installation: WidgetInstallation): Promise<void> {
-    if (!this.#isTrustedInstallation(installation)) {
+    if (!this.isTrustedInstallation(installation)) {
       throw new Error('The Widget Installation is no longer trusted.');
     }
 
-    const existingSource = this.#elementSources.get(installation.elementTag);
+    const existingSource = this.elementSources.get(installation.elementTag);
 
     if (existingSource !== undefined) {
       if (existingSource === installation.entryBundleUrl) {
@@ -233,17 +237,17 @@ export class WidgetRuntimeService {
       );
     }
 
-    let load = this.#entryBundlePromises.get(installation.entryBundleUrl);
+    let load = this.entryBundlePromises.get(installation.entryBundleUrl);
 
     if (load === undefined) {
-      load = this.#entryBundleLoader.load(installation.entryBundleUrl);
-      this.#entryBundlePromises.set(installation.entryBundleUrl, load);
+      load = this.entryBundleLoader.load(installation.entryBundleUrl);
+      this.entryBundlePromises.set(installation.entryBundleUrl, load);
     }
 
     try {
       await load;
     } catch (error) {
-      this.#entryBundlePromises.delete(installation.entryBundleUrl);
+      this.entryBundlePromises.delete(installation.entryBundleUrl);
       throw error;
     }
 
@@ -253,13 +257,13 @@ export class WidgetRuntimeService {
       );
     }
 
-    this.#elementSources.set(
+    this.elementSources.set(
       installation.elementTag,
       installation.entryBundleUrl,
     );
   }
 
-  #isTrustedInstallation(installation: WidgetInstallation): boolean {
+  private isTrustedInstallation(installation: WidgetInstallation): boolean {
     const manifestUrl = normalizeHttpUrl(installation.manifestUrl);
     const entryBundleUrl = normalizeHttpUrl(installation.entryBundleUrl);
 
@@ -270,12 +274,12 @@ export class WidgetRuntimeService {
     const manifestOrigin = new URL(manifestUrl).origin;
 
     return (
-      this.#trustedOrigins.has(manifestOrigin) &&
+      this.trustedOrigins.has(manifestOrigin) &&
       new URL(entryBundleUrl).origin === manifestOrigin
     );
   }
 
-  #trustedManifestUrl(input: string): TrustedManifestUrlResult {
+  private trustedManifestUrl(input: string): TrustedManifestUrlResult {
     const manifestUrl = normalizeHttpUrl(input.trim());
 
     if (manifestUrl === null) {
@@ -285,7 +289,7 @@ export class WidgetRuntimeService {
       };
     }
 
-    if (!this.#trustedOrigins.has(new URL(manifestUrl).origin)) {
+    if (!this.trustedOrigins.has(new URL(manifestUrl).origin)) {
       return {
         status: 'untrusted',
         message: 'This Widget Manifest origin is not trusted.',
@@ -295,8 +299,8 @@ export class WidgetRuntimeService {
     return { status: 'valid', url: manifestUrl };
   }
 
-  #reject(message: string): WidgetInstallationRejection {
-    this.#feedback.set({ status: 'error', message });
+  private reject(message: string): WidgetInstallationRejection {
+    this.feedbackState.set({ status: 'error', message });
     return { status: 'rejected', message };
   }
 }

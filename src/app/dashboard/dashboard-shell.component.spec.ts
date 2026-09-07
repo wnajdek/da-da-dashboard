@@ -501,14 +501,14 @@ describe('DashboardShellComponent', () => {
             customElements.define(
               WORKING_MANIFEST.elementTag,
               class extends HTMLElement {
-                #configuration: unknown = null;
+                private configurationValue: unknown = null;
 
                 get configuration(): unknown {
-                  return this.#configuration;
+                  return this.configurationValue;
                 }
 
                 set configuration(value: unknown) {
-                  this.#configuration = value;
+                  this.configurationValue = value;
                 }
 
                 connectedCallback(): void {
