@@ -101,8 +101,8 @@ describe('DashboardStore', () => {
 
     store.commitGridLayoutChange([{ id: widget.id, layout }]);
 
-    const reloadedStore = new DashboardStore(
-      TestBed.inject(DashboardPersistenceService),
+    const reloadedStore = TestBed.runInInjectionContext(
+      () => new DashboardStore(),
     );
     const reloadedWidget = reloadedStore.dashboard()!.widgets[0];
 

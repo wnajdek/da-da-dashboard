@@ -56,6 +56,9 @@ export type WidgetInstallationRemovalResult =
 
 @Injectable({ providedIn: 'root' })
 export class WidgetRuntimeService {
+  private readonly installationPersistence = inject(
+    WidgetInstallationPersistenceService,
+  );
   private readonly installationsState = signal<readonly WidgetInstallation[]>(
     [],
   );
@@ -80,9 +83,7 @@ export class WidgetRuntimeService {
   private readonly entryBundlePromises = new Map<string, Promise<void>>();
   private readonly elementSources = new Map<string, string>();
 
-  constructor(
-    private readonly installationPersistence: WidgetInstallationPersistenceService,
-  ) {
+  constructor() {
     const result = this.installationPersistence.load();
 
     if (result.status === 'ready') {

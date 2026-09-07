@@ -4,10 +4,9 @@
 
 **Blocked by:** 01/Standardize TypeScript private members.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Angular dependencies use one consistent field-based injection style throughout the Dashboard.
-- [ ] Injected dependencies that are not part of a class interface are private and readonly.
-- [ ] Constructors remain only where they perform meaningful initialization rather than dependency declaration.
-- [ ] Existing test adapters and injection-token overrides continue to work, and the full test suite and production builds remain green.
-
+- [x] Angular dependencies use one consistent field-based injection style throughout the Dashboard.
+- [x] Injected dependencies that are not part of a class interface are private and readonly.
+- [x] Constructors remain only where they perform meaningful initialization rather than dependency declaration.
+- [x] Existing test adapters and injection-token overrides continue to work, and the full test suite and production builds remain green.

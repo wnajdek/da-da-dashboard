@@ -818,8 +818,8 @@ describe('DashboardShellComponent', () => {
     ).toEqual(updatedConfiguration);
     expect(widgetElement?.configuration).toEqual(updatedConfiguration);
 
-    const reloadedStore = new DashboardStore(
-      TestBed.inject(DashboardPersistenceService),
+    const reloadedStore = TestBed.runInInjectionContext(
+      () => new DashboardStore(),
     );
     expect(
       JSON.stringify(reloadedStore.dashboard()?.widgets[0].configuration),
@@ -944,8 +944,7 @@ describe('DashboardShellComponent', () => {
       [
         {
           provide: DashboardStore,
-          useFactory: () =>
-            new DashboardStore(TestBed.inject(DashboardPersistenceService)),
+          useFactory: () => new DashboardStore(),
         },
       ],
       parentInjector,

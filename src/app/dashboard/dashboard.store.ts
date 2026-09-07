@@ -1,4 +1,4 @@
-import { computed, Injectable, Signal, signal } from '@angular/core';
+import { computed, inject, Injectable, Signal, signal } from '@angular/core';
 import {
   Dashboard,
   isValidGridLayout,
@@ -21,6 +21,7 @@ interface PendingWidgetRemoval {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardStore {
+  private readonly persistence = inject(DashboardPersistenceService);
   private readonly dashboardState = signal<Dashboard | null>(null);
   private readonly recoveryMessageState = signal<string | null>(null);
   private readonly pendingWidgetRemovalState =
@@ -35,7 +36,7 @@ export class DashboardStore {
     () => this.pendingWidgetRemovalState() !== null,
   );
 
-  constructor(private readonly persistence: DashboardPersistenceService) {
+  constructor() {
     const result = this.persistence.load();
 
     if (result.status === 'ready') {
