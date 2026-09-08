@@ -143,18 +143,20 @@ describe('WidgetElementComponent', () => {
     );
     await renderMountedElement(fixture);
     const previousElement = getWidgetElement(fixture);
-    const internals =
-      fixture.componentInstance as unknown as WidgetElementInternals;
+    fixture.componentRef.setInput('installation', supersededInstallation);
+    fixture.detectChanges();
+    await fixture.whenStable();
 
-    const supersededMount = internals.beginMount(supersededInstallation);
-    const replacementMount = internals.beginMount(replacementInstallation);
+    fixture.componentRef.setInput('installation', replacementInstallation);
+    fixture.detectChanges();
+    await fixture.whenStable();
 
     if (resolveSupersededLoad === undefined) {
       throw new Error('The superseded Widget Element load did not begin.');
     }
 
     resolveSupersededLoad();
-    await Promise.all([supersededMount, replacementMount]);
+    await fixture.whenStable();
     await renderMountedElement(fixture);
 
     previousElement.dispatchEvent(
@@ -194,10 +196,9 @@ describe('WidgetElementComponent', () => {
     );
     await renderMountedElement(fixture);
     const previousElement = getWidgetElement(fixture);
-    const internals =
-      fixture.componentInstance as unknown as WidgetElementInternals;
-
-    const pendingMount = internals.beginMount(pendingInstallation);
+    fixture.componentRef.setInput('installation', pendingInstallation);
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.destroy();
 
     if (resolvePendingLoad === undefined) {
@@ -205,7 +206,7 @@ describe('WidgetElementComponent', () => {
     }
 
     resolvePendingLoad();
-    await pendingMount;
+    await fixture.whenStable();
     previousElement.dispatchEvent(
       new CustomEvent('configuration-changed', {
         bubbles: true,
@@ -232,10 +233,6 @@ class ThrowingConfigurationWidgetElement extends HTMLElement {
   set configuration(_value: WidgetConfiguration) {
     throw new Error('configuration rejected');
   }
-}
-
-interface WidgetElementInternals {
-  beginMount(installation: WidgetInstallation): Promise<void>;
 }
 
 async function createFixture(
