@@ -25,6 +25,11 @@ interface WidgetElement extends HTMLElement {
   configuration: WidgetConfiguration;
 }
 
+interface MountAttempt {
+  element: WidgetElement | null;
+  onConfigurationChanged: ((event: Event) => void) | null;
+}
+
 @Component({
   selector: 'app-widget-element',
   imports: [UnavailableWidgetCardComponent],
@@ -71,100 +76,164 @@ export class WidgetElementComponent {
   private readonly elementLoader = inject(WidgetElementLoaderService);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
-  private element: WidgetElement | null = null;
-  private onConfigurationChanged: ((event: Event) => void) | null = null;
-  private mountRevision = 0;
+  private attempt: MountAttempt | null = null;
   private destroyed = false;
 
   constructor() {
     effect(() => {
       const installation = this.installation();
-      afterNextRender(() => void this.mount(installation), {
+      afterNextRender(() => void this.beginMount(installation), {
         injector: this.injector,
       });
     });
 
     effect(() => {
-      const element = this.element;
       const configuration = this.configuration();
-
-      if (element !== null) {
-        element.configuration = configuration;
-      }
+      this.updateMountedConfiguration(configuration);
     });
 
     this.destroyRef.onDestroy(() => {
       this.destroyed = true;
-      this.mountRevision += 1;
-      this.unmount();
+      this.cleanupAttempt(this.attempt);
+      this.attempt = null;
     });
   }
 
-  private async mount(installation: WidgetInstallation): Promise<void> {
-    const revision = ++this.mountRevision;
-    this.unmount();
-    this.state.set('loading');
+  private async beginMount(installation: WidgetInstallation): Promise<void> {
+    const attempt = this.startMountAttempt();
 
     try {
       await this.elementLoader.load(installation);
 
-      if (this.destroyed || revision !== this.mountRevision) {
+      if (!this.isCurrentAttempt(attempt)) {
         return;
       }
 
       const element = document.createElement(
         installation.elementTag,
       ) as WidgetElement;
-      this.onConfigurationChanged = (event: Event) => {
-        const detail = (event as CustomEvent<unknown>).detail;
-
-        const configuration = decodeJsonObject(detail);
-
-        if (configuration !== null) {
-          this.changed.emit({ id: this.widgetId(), configuration });
-        }
-      };
+      attempt.element = element;
+      attempt.onConfigurationChanged = (event: Event) =>
+        this.handleConfigurationChanged(attempt, event);
       element.addEventListener(
         'configuration-changed',
-        this.onConfigurationChanged,
+        attempt.onConfigurationChanged,
       );
-      this.element = element;
+      this.assignConfiguration(attempt, this.configuration());
       this.state.set('ready');
-      afterNextRender(
-        () => {
-          const readyHost = this.elementHost()?.nativeElement;
-
-          if (
-            readyHost === undefined ||
-            this.element !== element ||
-            this.destroyed ||
-            revision !== this.mountRevision
-          ) {
-            return;
-          }
-
-          element.configuration = this.configuration();
-          readyHost.replaceChildren(element);
-        },
-        { injector: this.injector },
-      );
+      this.attachRenderedElement(attempt);
     } catch {
-      if (!this.destroyed && revision === this.mountRevision) {
-        this.state.set('unavailable');
+      this.failAttempt(attempt);
+    }
+  }
+
+  private startMountAttempt(): MountAttempt {
+    this.cleanupAttempt(this.attempt);
+    const attempt: MountAttempt = {
+      element: null,
+      onConfigurationChanged: null,
+    };
+
+    this.attempt = attempt;
+    this.state.set('loading');
+
+    return attempt;
+  }
+
+  private isCurrentAttempt(attempt: MountAttempt): boolean {
+    return !this.destroyed && this.attempt === attempt;
+  }
+
+  private attachRenderedElement(attempt: MountAttempt): void {
+    afterNextRender(
+      () => {
+        const element = attempt.element;
+        const readyHost = this.elementHost()?.nativeElement;
+
+        if (
+          element === null ||
+          readyHost === undefined ||
+          !this.isCurrentAttempt(attempt)
+        ) {
+          return;
+        }
+
+        try {
+          readyHost.replaceChildren(element);
+        } catch {
+          this.failAttempt(attempt);
+        }
+      },
+      { injector: this.injector },
+    );
+  }
+
+  private updateMountedConfiguration(configuration: WidgetConfiguration): void {
+    const attempt = this.attempt;
+
+    if (attempt !== null && attempt.element !== null) {
+      try {
+        this.assignConfiguration(attempt, configuration);
+      } catch {
+        this.failAttempt(attempt);
       }
     }
   }
 
-  private unmount(): void {
-    if (this.element !== null && this.onConfigurationChanged !== null) {
-      this.element.removeEventListener(
+  private assignConfiguration(
+    attempt: MountAttempt,
+    configuration: WidgetConfiguration,
+  ): void {
+    if (!this.isCurrentAttempt(attempt) || attempt.element === null) {
+      return;
+    }
+
+    attempt.element.configuration = configuration;
+  }
+
+  private handleConfigurationChanged(
+    attempt: MountAttempt,
+    event: Event,
+  ): void {
+    if (!this.isCurrentAttempt(attempt)) {
+      return;
+    }
+
+    try {
+      const detail = (event as CustomEvent<unknown>).detail;
+      const configuration = decodeJsonObject(detail);
+
+      if (configuration !== null) {
+        this.changed.emit({ id: this.widgetId(), configuration });
+      }
+    } catch {
+      // Widget events are untrusted input at the host boundary.
+    }
+  }
+
+  private failAttempt(attempt: MountAttempt): void {
+    if (!this.isCurrentAttempt(attempt)) {
+      return;
+    }
+
+    this.cleanupAttempt(attempt);
+    this.state.set('unavailable');
+  }
+
+  private cleanupAttempt(attempt: MountAttempt | null): void {
+    if (attempt === null) {
+      return;
+    }
+
+    if (attempt.element !== null && attempt.onConfigurationChanged !== null) {
+      attempt.element.removeEventListener(
         'configuration-changed',
-        this.onConfigurationChanged,
+        attempt.onConfigurationChanged,
       );
     }
 
-    this.element?.remove();
-    this.element = null;
-    this.onConfigurationChanged = null;
+    attempt.element?.remove();
+    attempt.element = null;
+    attempt.onConfigurationChanged = null;
   }
 }
