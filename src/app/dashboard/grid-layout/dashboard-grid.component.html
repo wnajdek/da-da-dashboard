@@ -5,15 +5,14 @@
   aria-label="Dashboard widgets"
 >
   @for (widget of dashboard().widgets; track widget.id) {
-    @let gridWidget = gridStackWidget(widget);
     @let installation = installationFor(widget.type);
     <section
       class="grid-stack-item"
-      [attr.gs-id]="gridWidget.id"
-      [attr.gs-x]="gridWidget.x"
-      [attr.gs-y]="gridWidget.y"
-      [attr.gs-w]="gridWidget.w"
-      [attr.gs-h]="gridWidget.h"
+      [attr.gs-id]="widget.id"
+      [attr.gs-x]="widget.layout.x"
+      [attr.gs-y]="widget.layout.y"
+      [attr.gs-w]="widget.layout.w"
+      [attr.gs-h]="widget.layout.h"
     >
       <div class="grid-stack-item-content">
         @if (installation; as resolvedInstallation) {

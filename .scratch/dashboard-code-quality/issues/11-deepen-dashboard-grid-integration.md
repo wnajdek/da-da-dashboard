@@ -4,12 +4,11 @@
 
 **Blocked by:** 07/Centralize Dashboard domain validation.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Stateless GridStack conversions use focused functions or a justified adapter object rather than a static-only class.
-- [ ] Grid column count, layout constraints, breakpoint, cell height, margin, and drag handle configuration each have one authoritative definition.
-- [ ] Responsive behavior observes an injectable browser viewport seam instead of reading global window state throughout the component.
-- [ ] Adding, updating, and removing rendered GridStack items remains synchronized with Widget Instances without persisting GridStack objects.
-- [ ] Drag and resize completion emits only valid final Grid Layout changes, and narrow-screen interaction behavior remains unchanged.
-- [ ] Focused conversion, synchronization, and responsive tests remain green.
-
+- [x] Stateless GridStack conversions use focused functions or a justified adapter object rather than a static-only class.
+- [x] Grid column count, layout constraints, breakpoint, cell height, margin, and drag handle configuration each have one authoritative definition.
+- [x] Responsive behavior observes an injectable browser viewport seam instead of reading global window state throughout the component.
+- [x] Adding, updating, and removing rendered GridStack items remains synchronized with Widget Instances without persisting GridStack objects.
+- [x] Drag and resize completion emits only valid final Grid Layout changes, and narrow-screen interaction behavior remains unchanged.
+- [x] Focused conversion, synchronization, and responsive tests remain green.

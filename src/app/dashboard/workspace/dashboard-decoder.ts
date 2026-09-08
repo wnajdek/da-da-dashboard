@@ -8,8 +8,9 @@ import type {
   WidgetType,
 } from './dashboard.models';
 import { decodeJsonObject, isRecord } from './json-value';
+import { DASHBOARD_GRID_CONFIG } from '../grid-layout/dashboard-grid.config';
 
-export const DASHBOARD_GRID_COLUMNS = 12;
+export const DASHBOARD_GRID_COLUMNS = DASHBOARD_GRID_CONFIG.columns;
 
 export interface DashboardSnapshotV1 {
   readonly schemaVersion: 1;

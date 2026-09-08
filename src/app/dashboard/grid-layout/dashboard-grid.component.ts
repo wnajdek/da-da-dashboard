@@ -1,26 +1,28 @@
 import {
   AfterViewInit,
   Component,
+  computed,
   DestroyRef,
   ElementRef,
-  HostListener,
   Injector,
   afterNextRender,
   effect,
   inject,
   input,
   output,
-  signal,
   viewChild,
 } from '@angular/core';
-import { GridItemHTMLElement, GridStack, GridStackNode } from 'gridstack';
 import {
   Dashboard,
   WidgetConfigurationChange,
-  WidgetInstance,
   WidgetLayoutChange,
 } from '../workspace/dashboard.models';
-import { GridStackLayoutAdapter } from './gridstack-layout.adapter';
+import { BROWSER_VIEWPORT } from './browser-viewport';
+import { DASHBOARD_GRID_CONFIG } from './dashboard-grid.config';
+import {
+  DASHBOARD_GRID,
+  GridStackDashboardGrid,
+} from './gridstack-dashboard-grid';
 import { UnavailableWidgetCardComponent } from '../widget-element-host/unavailable-widget-card.component';
 import { WidgetElementComponent } from '../widget-element-host/widget-element.component';
 import { WidgetInstallationService } from '../widget-installation/widget-installation.service';
@@ -28,6 +30,7 @@ import { WidgetInstallationService } from '../widget-installation/widget-install
 @Component({
   selector: 'app-dashboard-grid',
   imports: [UnavailableWidgetCardComponent, WidgetElementComponent],
+  providers: [{ provide: DASHBOARD_GRID, useClass: GridStackDashboardGrid }],
   templateUrl: './dashboard-grid.component.html',
   styleUrl: './dashboard-grid.component.scss',
 })
@@ -36,14 +39,17 @@ export class DashboardGridComponent implements AfterViewInit {
   readonly layoutCommitted = output<readonly WidgetLayoutChange[]>();
   readonly widgetConfigurationChanged = output<WidgetConfigurationChange>();
   readonly widgetRemoved = output<string>();
-  protected readonly narrowScreen = signal(window.innerWidth <= 767);
+  protected readonly narrowScreen = computed(
+    () => this.viewport.width() <= DASHBOARD_GRID_CONFIG.narrowScreenBreakpoint,
+  );
 
   private readonly gridElement =
     viewChild.required<ElementRef<HTMLElement>>('grid');
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   private readonly installations = inject(WidgetInstallationService);
-  private grid: GridStack | null = null;
+  private readonly grid = inject(DASHBOARD_GRID);
+  private readonly viewport = inject(BROWSER_VIEWPORT);
 
   constructor() {
     effect(() => {
@@ -52,37 +58,15 @@ export class DashboardGridComponent implements AfterViewInit {
         injector: this.injector,
       });
     });
+    effect(() => this.grid.setNarrowScreen(this.narrowScreen()));
   }
 
   ngAfterViewInit(): void {
-    this.grid = GridStack.init(
-      {
-        column: 12,
-        cellHeight: 96,
-        margin: 8,
-        handle: '.widget-drag-handle',
-      },
-      this.gridElement().nativeElement,
+    this.grid.initialize(this.gridElement().nativeElement, (changes) =>
+      this.layoutCommitted.emit(changes),
     );
-    this.grid.on('dragstop resizestop', () => this.commitFinalLayout());
-    this.updateGridInteractivity();
-    this.destroyRef.onDestroy(() => this.grid?.destroy(false));
-  }
-
-  @HostListener('window:resize')
-  protected updateScreenPresentation(): void {
-    const isNarrowScreen = window.innerWidth <= 767;
-
-    if (isNarrowScreen === this.narrowScreen()) {
-      return;
-    }
-
-    this.narrowScreen.set(isNarrowScreen);
-    this.updateGridInteractivity();
-  }
-
-  protected gridStackWidget(widget: WidgetInstance) {
-    return GridStackLayoutAdapter.toGridStackWidget(widget);
+    this.grid.setNarrowScreen(this.narrowScreen());
+    this.destroyRef.onDestroy(() => this.grid.destroy());
   }
 
   protected installationFor(type: string) {
@@ -90,74 +74,6 @@ export class DashboardGridComponent implements AfterViewInit {
   }
 
   private synchronizeGridItems(): void {
-    const grid = this.grid;
-
-    if (grid === null) {
-      return;
-    }
-
-    const widgetsById = new Map(
-      this.dashboard().widgets.map((widget) => [widget.id, widget]),
-    );
-    const widgetIds = new Set(widgetsById.keys());
-
-    for (const node of [...grid.engine.nodes]) {
-      if (typeof node.id === 'string' && !widgetIds.has(node.id) && node.el) {
-        grid.removeWidget(node.el, false);
-      }
-    }
-
-    const items = [
-      ...this.gridElement().nativeElement.querySelectorAll<GridItemHTMLElement>(
-        '.grid-stack-item',
-      ),
-    ];
-
-    for (const item of items) {
-      const node = item.gridstackNode;
-      const id =
-        node?.id === undefined ? item.getAttribute('gs-id') : String(node.id);
-      const widget = id === null ? undefined : widgetsById.get(id);
-
-      if (widget === undefined && node !== undefined) {
-        grid.removeWidget(item, false);
-      } else if (node === undefined) {
-        if (widget !== undefined) {
-          grid.makeWidget(
-            item,
-            GridStackLayoutAdapter.toGridStackWidget(widget),
-          );
-        }
-      } else if (widget !== undefined) {
-        grid.update(item, GridStackLayoutAdapter.toGridStackWidget(widget));
-      }
-    }
-  }
-
-  private commitFinalLayout(): void {
-    const grid = this.grid;
-
-    if (grid === null) {
-      return;
-    }
-
-    const changes = grid.engine.nodes
-      .map((node: GridStackNode) => GridStackLayoutAdapter.toLayoutChange(node))
-      .filter((change): change is WidgetLayoutChange => change !== null);
-
-    this.layoutCommitted.emit(changes);
-  }
-
-  private updateGridInteractivity(): void {
-    if (this.grid === null) {
-      return;
-    }
-
-    if (this.narrowScreen()) {
-      this.grid.disable();
-      return;
-    }
-
-    this.grid.enable();
+    this.grid.synchronize(this.dashboard().widgets);
   }
 }
