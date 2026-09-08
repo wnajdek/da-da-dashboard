@@ -4,12 +4,11 @@
 
 **Blocked by:** 05/Extract long Dashboard templates, 09/Separate Widget Installation management from Widget loading, and 12/Report Dashboard persistence failures.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] Manifest URL input, installation progress, operation feedback, available Widget metadata, adding a Widget Instance, and removing an installation are owned by a focused Catalog component.
-- [ ] Catalog feedback is derived from explicit installation operation results and remains accessible to users.
-- [ ] The Dashboard Shell composes the recovery view, Widget Catalog, Dashboard Grid, persistence feedback, and removal undo through small interfaces.
-- [ ] Adding a Widget Instance still uses the Widget Manifest's default Widget Configuration and preferred Grid Layout size.
-- [ ] Removing an installation still preserves existing Widget Instances as Unavailable Widgets.
-- [ ] Catalog and Shell tests cover their respective user-visible behavior without reaching into private implementation members.
-
+- [x] Manifest URL input, installation progress, operation feedback, available Widget metadata, adding a Widget Instance, and removing an installation are owned by a focused Catalog component.
+- [x] Catalog feedback is derived from explicit installation operation results and remains accessible to users.
+- [x] The Dashboard Shell composes the recovery view, Widget Catalog, Dashboard Grid, persistence feedback, and removal undo through small interfaces.
+- [x] Adding a Widget Instance still uses the Widget Manifest's default Widget Configuration and preferred Grid Layout size.
+- [x] Removing an installation still preserves existing Widget Instances as Unavailable Widgets.
+- [x] Catalog and Shell tests cover their respective user-visible behavior without reaching into private implementation members.

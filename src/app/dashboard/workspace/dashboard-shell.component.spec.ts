@@ -80,23 +80,6 @@ const CONTINUITY_MANIFEST = {
 };
 
 describe('DashboardShellComponent', () => {
-  it('shows installation persistence recovery feedback', async () => {
-    const storage = new MemoryStorage();
-    storage.setItem('configurable-dashboard.widget-installations', '{');
-    const fixture = await createShellFixture(storage, {
-      load: jasmine.createSpy('load'),
-    });
-
-    const status = getHost(fixture).querySelector<HTMLElement>(
-      '[data-testid="widget-installation-status"]',
-    );
-
-    expect(status?.textContent).toContain(
-      'Saved Widget Installations could not be read.',
-    );
-    expect(status?.classList).toContain('installation-feedback--error');
-  });
-
   it('announces a reset persistence failure from Dashboard recovery', async () => {
     const storage = new MemoryStorage();
     storage.setItem(DASHBOARD_STORAGE_KEY, 'invalid');
