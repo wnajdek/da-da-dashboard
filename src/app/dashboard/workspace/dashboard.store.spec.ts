@@ -4,7 +4,7 @@ import {
   DASHBOARD_STORAGE,
   DashboardPersistenceService,
 } from './dashboard-persistence.service';
-import { DashboardStore } from './dashboard.store';
+import { DashboardStore, WIDGET_INSTANCE_ID_FACTORY } from './dashboard.store';
 import { MemoryStorage } from '../../testing/memory-storage';
 
 describe('DashboardStore', () => {
@@ -16,6 +16,10 @@ describe('DashboardStore', () => {
       providers: [
         provideZonelessChangeDetection(),
         { provide: DASHBOARD_STORAGE, useValue: storage },
+        {
+          provide: WIDGET_INSTANCE_ID_FACTORY,
+          useValue: () => 'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11',
+        },
       ],
     });
   });
@@ -38,7 +42,7 @@ describe('DashboardStore', () => {
       'The saved Dashboard could not be read.',
     );
 
-    store.resetToDefaults();
+    expect(store.resetToDefaults()).toEqual({ status: 'success' });
 
     expect(store.dashboard()?.widgets).toEqual([]);
   });
@@ -46,7 +50,7 @@ describe('DashboardStore', () => {
   it('adds an installed Widget with its opaque defaults and preferred Grid Layout', () => {
     const store = TestBed.inject(DashboardStore);
 
-    store.addWidget({
+    const result = store.addWidget({
       type: 'weather',
       configuration: { location: 'Warsaw', units: 'metric' },
       preferredLayout: { w: 4, h: 3 },
@@ -54,8 +58,9 @@ describe('DashboardStore', () => {
 
     const widget = store.dashboard()?.widgets[0];
 
+    expect(result).toEqual({ status: 'success' });
     expect(widget).toBeDefined();
-    expect(typeof widget?.id).toBe('string');
+    expect(widget?.id).toBe('f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11');
     expect(widget?.type).toBe('weather');
     expect(JSON.stringify(widget?.configuration)).toBe(
       '{"location":"Warsaw","units":"metric"}',
@@ -72,13 +77,74 @@ describe('DashboardStore', () => {
   it('ignores a Widget creation with an invalid Widget Type', () => {
     const store = TestBed.inject(DashboardStore);
 
-    store.addWidget({
+    const result = store.addWidget({
       type: 'Weather',
       configuration: { location: 'Warsaw' },
       preferredLayout: { w: 4, h: 3 },
     });
 
+    expect(result).toEqual({ status: 'invalid-input' });
     expect(store.dashboard()?.widgets).toEqual([]);
+  });
+
+  it('reports missing Widgets without attempting persistence', () => {
+    const store = TestBed.inject(DashboardStore);
+    const save = spyOn(
+      TestBed.inject(DashboardPersistenceService),
+      'save',
+    ).and.callThrough();
+
+    const result = store.updateWidgetConfiguration({
+      id: 'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11',
+      configuration: { location: 'Warsaw' },
+    });
+
+    expect(result).toEqual({ status: 'missing-target' });
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('reports malformed Widget Instance IDs as invalid input', () => {
+    const store = TestBed.inject(DashboardStore);
+
+    expect(store.removeWidget('not-a-widget-id')).toEqual({
+      status: 'invalid-input',
+    });
+  });
+
+  it('reports storage failures, keeps the persisted Dashboard, and publishes feedback', () => {
+    const store = TestBed.inject(DashboardStore);
+    const savedSnapshot = storage.getItem('configurable-dashboard.snapshot');
+    spyOn(storage, 'setItem').and.throwError('Storage quota exceeded');
+
+    const result = store.addWidget({
+      type: 'weather',
+      configuration: { location: 'Warsaw' },
+      preferredLayout: { w: 4, h: 3 },
+    });
+
+    expect(result).toEqual({ status: 'storage-failure' });
+    expect(store.dashboard()?.widgets).toEqual([]);
+    expect(storage.getItem('configurable-dashboard.snapshot')).toBe(
+      savedSnapshot,
+    );
+    expect(store.persistenceFailureMessage()).toBe(
+      'The requested Dashboard change could not be saved locally.',
+    );
+  });
+
+  it('does not replace the current Dashboard when reset persistence fails', () => {
+    const store = TestBed.inject(DashboardStore);
+    store.addWidget({
+      type: 'weather',
+      configuration: { location: 'Warsaw' },
+      preferredLayout: { w: 4, h: 3 },
+    });
+    const persistedDashboard = store.dashboard();
+    spyOn(storage, 'setItem').and.throwError('Storage quota exceeded');
+
+    expect(store.resetToDefaults()).toEqual({ status: 'storage-failure' });
+    expect(store.dashboard()).toEqual(persistedDashboard);
+    expect(store.recoveryMessage()).toBeNull();
   });
 
   it('persists a complete replacement Widget Configuration without interpreting it', () => {
@@ -90,10 +156,16 @@ describe('DashboardStore', () => {
     });
     const widget = store.dashboard()!.widgets[0];
 
-    store.updateWidgetConfiguration({
-      id: widget.id,
-      configuration: { location: 'Gdańsk', units: 'imperial', forecastDays: 5 },
-    });
+    expect(
+      store.updateWidgetConfiguration({
+        id: widget.id,
+        configuration: {
+          location: 'Gdańsk',
+          units: 'imperial',
+          forecastDays: 5,
+        },
+      }),
+    ).toEqual({ status: 'success' });
 
     expect(JSON.stringify(store.dashboard()!.widgets[0].configuration)).toBe(
       '{"location":"Gdańsk","units":"imperial","forecastDays":5}',
@@ -111,7 +183,9 @@ describe('DashboardStore', () => {
     const widget = store.dashboard()!.widgets[0];
     const layout = { x: 6, y: 8, w: 5, h: 4 };
 
-    store.commitGridLayoutChange([{ id: widget.id, layout }]);
+    expect(store.commitGridLayoutChange([{ id: widget.id, layout }])).toEqual({
+      status: 'success',
+    });
 
     const reloadedStore = TestBed.runInInjectionContext(
       () => new DashboardStore(),
@@ -135,16 +209,18 @@ describe('DashboardStore', () => {
     const widget = store.dashboard()!.widgets[0];
     const savedSnapshot = storage.getItem('configurable-dashboard.snapshot');
 
-    store.commitGridLayoutChange([
-      {
-        id: widget.id,
-        layout: { x: -1, y: 0, w: 4, h: 3 },
-      },
-      {
-        id: 'unknown-widget',
-        layout: { x: 2, y: 2, w: 2, h: 2 },
-      },
-    ]);
+    expect(
+      store.commitGridLayoutChange([
+        {
+          id: widget.id,
+          layout: { x: -1, y: 0, w: 4, h: 3 },
+        },
+        {
+          id: 'unknown-widget',
+          layout: { x: 2, y: 2, w: 2, h: 2 },
+        },
+      ]),
+    ).toEqual({ status: 'invalid-input' });
 
     expect(store.dashboard()!.widgets[0].layout).toEqual({
       x: 0,
@@ -180,14 +256,14 @@ describe('DashboardStore', () => {
       );
       const store = TestBed.inject(DashboardStore);
 
-      store.removeWidget(widget.id);
+      expect(store.removeWidget(widget.id)).toEqual({ status: 'success' });
       expect(store.dashboard()?.widgets).toEqual([]);
       expect(store.canUndoRemoval()).toBeTrue();
 
-      store.undoWidgetRemoval();
+      expect(store.undoWidgetRemoval()).toEqual({ status: 'success' });
       expect(store.dashboard()?.widgets).toEqual([widget]);
 
-      store.removeWidget(widget.id);
+      expect(store.removeWidget(widget.id)).toEqual({ status: 'success' });
       jasmine.clock().tick(5_000);
       expect(store.canUndoRemoval()).toBeFalse();
     } finally {

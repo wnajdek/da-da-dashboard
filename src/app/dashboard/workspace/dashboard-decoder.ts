@@ -63,19 +63,29 @@ export function decodeGridLayoutSize(
 }
 
 export function decodeWidgetInstance(value: unknown): WidgetInstance | null {
-  if (!isRecord(value) || !isUuid(value['id'])) {
+  if (!isRecord(value)) {
     return null;
   }
 
+  const id = decodeWidgetInstanceId(value['id']);
   const type = decodeWidgetType(value['type']);
   const layout = decodeGridLayout(value['layout']);
   const configuration = decodeJsonObject(value['configuration']);
 
-  if (type === null || layout === null || configuration === null) {
+  if (
+    id === null ||
+    type === null ||
+    layout === null ||
+    configuration === null
+  ) {
     return null;
   }
 
-  return { id: value['id'], type, layout, configuration };
+  return { id, type, layout, configuration };
+}
+
+export function decodeWidgetInstanceId(value: unknown): string | null {
+  return isUuid(value) ? value : null;
 }
 
 export function decodeDashboard(value: unknown): Dashboard | null {
@@ -138,25 +148,27 @@ export function decodeWidgetCreation(value: unknown): WidgetCreation | null {
 export function decodeWidgetConfigurationChange(
   value: unknown,
 ): WidgetConfigurationChange | null {
-  if (!isRecord(value) || !isUuid(value['id'])) {
+  if (!isRecord(value)) {
     return null;
   }
 
+  const id = decodeWidgetInstanceId(value['id']);
   const configuration = decodeJsonObject(value['configuration']);
 
-  return configuration === null ? null : { id: value['id'], configuration };
+  return id === null || configuration === null ? null : { id, configuration };
 }
 
 export function decodeWidgetLayoutChange(
   value: unknown,
 ): WidgetLayoutChange | null {
-  if (!isRecord(value) || !isUuid(value['id'])) {
+  if (!isRecord(value)) {
     return null;
   }
 
+  const id = decodeWidgetInstanceId(value['id']);
   const layout = decodeGridLayout(value['layout']);
 
-  return layout === null ? null : { id: value['id'], layout };
+  return id === null || layout === null ? null : { id, layout };
 }
 
 function isUuid(value: unknown): value is string {

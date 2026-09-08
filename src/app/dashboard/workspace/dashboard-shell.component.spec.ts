@@ -27,9 +27,7 @@ import {
   WIDGET_MANIFEST_SOURCE,
   type WidgetManifestSource,
 } from '../widget-installation/widget-manifest-source';
-import {
-  TRUSTED_MANIFEST_ORIGINS,
-} from '../widget-installation/widget-trust-policy';
+import { TRUSTED_MANIFEST_ORIGINS } from '../widget-installation/widget-trust-policy';
 import type { WidgetConfiguration } from './dashboard.models';
 import { MemoryStorage } from '../../testing/memory-storage';
 import type { WidgetInstallation } from '../widget-installation/widget-installation.models';
@@ -97,6 +95,34 @@ describe('DashboardShellComponent', () => {
       'Saved Widget Installations could not be read.',
     );
     expect(status?.classList).toContain('installation-feedback--error');
+  });
+
+  it('announces a reset persistence failure from Dashboard recovery', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem(DASHBOARD_STORAGE_KEY, 'invalid');
+    const fixture = await createShellFixture(storage, {
+      load: jasmine.createSpy('load'),
+    });
+    spyOn(TestBed.inject(DashboardPersistenceService), 'save').and.returnValue(
+      false,
+    );
+    const host = getHost(fixture);
+
+    host.querySelector<HTMLButtonElement>('button')?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const feedback = host.querySelector<HTMLElement>(
+      '[data-testid="dashboard-persistence-status"]',
+    );
+
+    expect(feedback?.getAttribute('role')).toBe('alert');
+    expect(feedback?.textContent).toContain(
+      'The requested Dashboard change could not be saved locally.',
+    );
+    expect(host.textContent).toContain(
+      'The saved Dashboard could not be read.',
+    );
   });
 
   it('installs a trusted manifest and shows it as an available Widget Type', async () => {
@@ -353,6 +379,38 @@ describe('DashboardShellComponent', () => {
     expect(
       host.querySelectorAll('[data-testid="available-widget"]'),
     ).toHaveSize(1);
+    expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(0);
+    expectEmptyDashboardSnapshot(storage);
+  });
+
+  it('announces Dashboard persistence failures without adding a Widget Instance', async () => {
+    const storage = new MemoryStorage();
+    const fixture = await createShellFixture(
+      storage,
+      { load: jasmine.createSpy('load') },
+      [TRUSTED_ORIGIN],
+      undefined,
+      [WEATHER_INSTALLATION],
+    );
+    spyOn(TestBed.inject(DashboardPersistenceService), 'save').and.returnValue(
+      false,
+    );
+    const host = getHost(fixture);
+
+    host
+      .querySelector<HTMLButtonElement>('[data-testid="add-widget"]')
+      ?.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const feedback = host.querySelector<HTMLElement>(
+      '[data-testid="dashboard-persistence-status"]',
+    );
+
+    expect(feedback?.getAttribute('role')).toBe('alert');
+    expect(feedback?.textContent).toContain(
+      'The requested Dashboard change could not be saved locally.',
+    );
     expect(host.querySelectorAll('.grid-stack-item')).toHaveSize(0);
     expectEmptyDashboardSnapshot(storage);
   });

@@ -1,7 +1,15 @@
-import { computed, inject, Injectable, Signal, signal } from '@angular/core';
+import {
+  computed,
+  inject,
+  Injectable,
+  InjectionToken,
+  Signal,
+  signal,
+} from '@angular/core';
 import {
   decodeWidgetConfigurationChange,
   decodeWidgetCreation,
+  decodeWidgetInstanceId,
   decodeWidgetLayoutChange,
 } from './dashboard-decoder';
 import type {
@@ -15,6 +23,8 @@ import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
+const PERSISTENCE_FAILURE_MESSAGE =
+  'The requested Dashboard change could not be saved locally.';
 
 interface PendingWidgetRemoval {
   readonly widget: WidgetInstance;
@@ -24,8 +34,10 @@ interface PendingWidgetRemoval {
 @Injectable({ providedIn: 'root' })
 export class DashboardStore {
   private readonly persistence = inject(DashboardPersistenceService);
+  private readonly createWidgetInstanceId = inject(WIDGET_INSTANCE_ID_FACTORY);
   private readonly dashboardState = signal<Dashboard | null>(null);
   private readonly recoveryMessageState = signal<string | null>(null);
+  private readonly persistenceFailureMessageState = signal<string | null>(null);
   private readonly pendingWidgetRemovalState =
     signal<PendingWidgetRemoval | null>(null);
   private undoRemovalTimer: ReturnType<typeof setTimeout> | null = null;
@@ -34,6 +46,8 @@ export class DashboardStore {
     this.dashboardState.asReadonly();
   readonly recoveryMessage: Signal<string | null> =
     this.recoveryMessageState.asReadonly();
+  readonly persistenceFailureMessage: Signal<string | null> =
+    this.persistenceFailureMessageState.asReadonly();
   readonly canUndoRemoval = computed(
     () => this.pendingWidgetRemovalState() !== null,
   );
@@ -54,22 +68,31 @@ export class DashboardStore {
     this.loadSeedDashboard();
   }
 
-  resetToDefaults(): void {
-    this.clearPendingWidgetRemoval();
-    this.loadSeedDashboard();
+  resetToDefaults(): DashboardCommandResult {
+    const result = this.loadSeedDashboard();
+
+    if (result.status === 'success') {
+      this.clearPendingWidgetRemoval();
+    }
+
+    return result;
   }
 
-  addWidget(creation: WidgetCreation): void {
+  addWidget(creation: WidgetCreation): DashboardCommandResult {
     const dashboard = this.dashboardState();
 
     const decodedCreation = decodeWidgetCreation(creation);
 
-    if (dashboard === null || decodedCreation === null) {
-      return;
+    if (decodedCreation === null) {
+      return { status: 'invalid-input' };
+    }
+
+    if (dashboard === null) {
+      return { status: 'missing-target' };
     }
 
     const widget: WidgetInstance = {
-      id: crypto.randomUUID(),
+      id: this.createWidgetInstanceId(),
       type: decodedCreation.type,
       configuration: decodedCreation.configuration,
       layout: {
@@ -84,18 +107,22 @@ export class DashboardStore {
       widgets: [...dashboard.widgets, widget],
     };
 
-    if (this.persistence.save(updatedDashboard)) {
-      this.dashboardState.set(updatedDashboard);
-    }
+    return this.persistDashboard(updatedDashboard);
   }
 
-  updateWidgetConfiguration(change: WidgetConfigurationChange): void {
+  updateWidgetConfiguration(
+    change: WidgetConfigurationChange,
+  ): DashboardCommandResult {
     const dashboard = this.dashboardState();
 
     const decodedChange = decodeWidgetConfigurationChange(change);
 
-    if (dashboard === null || decodedChange === null) {
-      return;
+    if (decodedChange === null) {
+      return { status: 'invalid-input' };
+    }
+
+    if (dashboard === null) {
+      return { status: 'missing-target' };
     }
 
     const widget = dashboard.widgets.find(
@@ -103,7 +130,7 @@ export class DashboardStore {
     );
 
     if (widget === undefined) {
-      return;
+      return { status: 'missing-target' };
     }
 
     const updatedDashboard: Dashboard = {
@@ -115,22 +142,24 @@ export class DashboardStore {
       ),
     };
 
-    if (this.persistence.save(updatedDashboard)) {
-      this.dashboardState.set(updatedDashboard);
-    }
+    return this.persistDashboard(updatedDashboard);
   }
 
-  removeWidget(id: string): void {
+  removeWidget(id: string): DashboardCommandResult {
     const dashboard = this.dashboardState();
 
+    if (decodeWidgetInstanceId(id) === null) {
+      return { status: 'invalid-input' };
+    }
+
     if (dashboard === null) {
-      return;
+      return { status: 'missing-target' };
     }
 
     const index = dashboard.widgets.findIndex((widget) => widget.id === id);
 
     if (index === -1) {
-      return;
+      return { status: 'missing-target' };
     }
 
     const widget = dashboard.widgets[index];
@@ -139,25 +168,27 @@ export class DashboardStore {
       widgets: dashboard.widgets.filter((candidate) => candidate.id !== id),
     };
 
-    if (!this.persistence.save(updatedDashboard)) {
-      return;
+    const result = this.persistDashboard(updatedDashboard);
+
+    if (result.status !== 'success') {
+      return result;
     }
 
     this.clearPendingWidgetRemoval();
-    this.dashboardState.set(updatedDashboard);
     this.pendingWidgetRemovalState.set({ widget, index });
     this.undoRemovalTimer = setTimeout(() => {
       this.pendingWidgetRemovalState.set(null);
       this.undoRemovalTimer = null;
     }, WIDGET_REMOVAL_UNDO_DURATION_MS);
+    return result;
   }
 
-  undoWidgetRemoval(): void {
+  undoWidgetRemoval(): DashboardCommandResult {
     const dashboard = this.dashboardState();
     const pendingRemoval = this.pendingWidgetRemovalState();
 
     if (dashboard === null || pendingRemoval === null) {
-      return;
+      return { status: 'missing-target' };
     }
 
     const restoredDashboard: Dashboard = {
@@ -169,25 +200,48 @@ export class DashboardStore {
       ],
     };
 
-    if (this.persistence.save(restoredDashboard)) {
-      this.dashboardState.set(restoredDashboard);
+    const result = this.persistDashboard(restoredDashboard);
+
+    if (result.status === 'success') {
       this.clearPendingWidgetRemoval();
     }
+
+    return result;
   }
 
-  commitGridLayoutChange(changes: readonly WidgetLayoutChange[]): void {
+  commitGridLayoutChange(
+    changes: readonly WidgetLayoutChange[],
+  ): DashboardCommandResult {
     const dashboard = this.dashboardState();
 
-    if (dashboard === null || changes.length === 0) {
-      return;
+    if (!Array.isArray(changes) || changes.length === 0) {
+      return { status: 'invalid-input' };
     }
 
-    const layoutsByWidgetId = new Map(
-      changes
-        .map(decodeWidgetLayoutChange)
-        .filter((change): change is WidgetLayoutChange => change !== null)
-        .map((change) => [change.id, change.layout]),
+    if (dashboard === null) {
+      return { status: 'missing-target' };
+    }
+
+    const decodedChanges = changes.map(decodeWidgetLayoutChange);
+
+    if (decodedChanges.some((change) => change === null)) {
+      return { status: 'invalid-input' };
+    }
+
+    const validChanges = decodedChanges.filter(
+      (change): change is WidgetLayoutChange => change !== null,
     );
+    const layoutsByWidgetId = new Map(
+      validChanges.map((change) => [change.id, change.layout]),
+    );
+
+    if (
+      [...layoutsByWidgetId.keys()].some(
+        (id) => !dashboard.widgets.some((widget) => widget.id === id),
+      )
+    ) {
+      return { status: 'missing-target' };
+    }
     let changed = false;
     const updatedDashboard: Dashboard = {
       ...dashboard,
@@ -203,24 +257,44 @@ export class DashboardStore {
       }),
     };
 
-    if (changed && this.persistence.save(updatedDashboard)) {
-      this.dashboardState.set(updatedDashboard);
+    if (!changed) {
+      return { status: 'success' };
     }
+
+    return this.persistDashboard(updatedDashboard);
   }
 
-  private loadSeedDashboard(): void {
+  private loadSeedDashboard(): DashboardCommandResult {
     const dashboard = createSeedDashboard();
 
     if (!this.persistence.save(dashboard)) {
-      this.dashboardState.set(null);
-      this.recoveryMessageState.set(
-        'The Dashboard could not be saved locally.',
-      );
-      return;
+      if (
+        this.dashboardState() === null &&
+        this.recoveryMessageState() === null
+      ) {
+        this.recoveryMessageState.set(
+          'The Dashboard could not be saved locally.',
+        );
+      }
+      this.persistenceFailureMessageState.set(PERSISTENCE_FAILURE_MESSAGE);
+      return { status: 'storage-failure' };
     }
 
     this.dashboardState.set(dashboard);
     this.recoveryMessageState.set(null);
+    this.persistenceFailureMessageState.set(null);
+    return { status: 'success' };
+  }
+
+  private persistDashboard(dashboard: Dashboard): DashboardCommandResult {
+    if (!this.persistence.save(dashboard)) {
+      this.persistenceFailureMessageState.set(PERSISTENCE_FAILURE_MESSAGE);
+      return { status: 'storage-failure' };
+    }
+
+    this.dashboardState.set(dashboard);
+    this.persistenceFailureMessageState.set(null);
+    return { status: 'success' };
   }
 
   private clearPendingWidgetRemoval(): void {
@@ -239,6 +313,20 @@ export class DashboardStore {
     );
   }
 }
+
+export type DashboardCommandResult =
+  | { readonly status: 'success' }
+  | { readonly status: 'invalid-input' }
+  | { readonly status: 'missing-target' }
+  | { readonly status: 'storage-failure' };
+
+export type WidgetInstanceIdFactory = () => string;
+
+export const WIDGET_INSTANCE_ID_FACTORY =
+  new InjectionToken<WidgetInstanceIdFactory>('Widget Instance ID factory', {
+    providedIn: 'root',
+    factory: () => () => crypto.randomUUID(),
+  });
 
 function areLayoutsEqual(
   left: WidgetInstance['layout'],

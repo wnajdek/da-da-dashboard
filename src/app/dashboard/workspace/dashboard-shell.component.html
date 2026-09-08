@@ -4,6 +4,11 @@
       <p class="eyebrow">Dashboard recovery</p>
       <h1 id="recovery-title">Saved Dashboard needs attention</h1>
       <p>{{ recoveryMessage }}</p>
+      @if (store.persistenceFailureMessage(); as persistenceFailureMessage) {
+        <p data-testid="dashboard-persistence-status" role="alert">
+          {{ persistenceFailureMessage }}
+        </p>
+      }
       <button type="button" (click)="store.resetToDefaults()">
         Reset to defaults
       </button>
@@ -53,6 +58,16 @@
       </p>
     }
 
+    @if (store.persistenceFailureMessage(); as persistenceFailureMessage) {
+      <p
+        class="persistence-feedback"
+        data-testid="dashboard-persistence-status"
+        role="alert"
+      >
+        {{ persistenceFailureMessage }}
+      </p>
+    }
+
     @if (installations.installations().length > 0) {
       <section
         class="available-widgets"
@@ -68,10 +83,7 @@
             installation of installations.installations();
             track installation.type
           ) {
-            <article
-              class="available-widget"
-              data-testid="available-widget"
-            >
+            <article class="available-widget" data-testid="available-widget">
               <p class="widget-kind">{{ installation.type }}</p>
               <h3>{{ installation.displayName }}</h3>
               @if (installation.description) {
