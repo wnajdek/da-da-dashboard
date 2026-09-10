@@ -52,6 +52,13 @@ A browser Custom Element registered by a loaded trusted Widget bundle. The
 Dashboard uses its declared tag, properties, and Custom Events rather than
 depending on the Widget's Angular implementation.
 
+## Widget Frame
+
+The Dashboard-owned visual wrapper around a Widget Element or Unavailable
+Widget. It provides shared card chrome and Widget Instance controls; it does
+not own Widget-specific content.
+_Avoid_: widget wrapper, widget card
+
 ## Widget Author
 
 The person or team that builds and publishes a separate Widget application and

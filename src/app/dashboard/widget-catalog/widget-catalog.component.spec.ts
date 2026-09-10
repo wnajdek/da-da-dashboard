@@ -51,7 +51,7 @@ describe('WidgetCatalogComponent', () => {
     );
   });
 
-  it('installs a trusted manifest and exposes its metadata', async () => {
+  it('installs a trusted manifest and presents it in the drawer', async () => {
     const source: WidgetManifestSource = {
       load: jasmine.createSpy('load').and.resolveTo({
         ...WEATHER_INSTALLATION,
@@ -68,7 +68,6 @@ describe('WidgetCatalogComponent', () => {
     expect(source.load).toHaveBeenCalledOnceWith(MANIFEST_URL);
     expect(host.textContent).toContain('Weather');
     expect(host.textContent).toContain('Current conditions');
-    expect(host.textContent).toContain('4 × 3');
     expect(
       host.querySelector('[data-testid="widget-installation-status"]')
         ?.textContent,
@@ -94,29 +93,35 @@ describe('WidgetCatalogComponent', () => {
     expect(widget?.layout).toEqual(jasmine.objectContaining({ w: 4, h: 3 }));
   });
 
-  it('removes an installation while keeping existing Widget Instances', async () => {
+  it('filters installed Widget Types by display name and description', async () => {
     const fixture = await createCatalogFixture(
       { load: jasmine.createSpy('load') },
       [WEATHER_INSTALLATION],
     );
-    const store = TestBed.inject(DashboardStore);
-    store.addWidget({
-      type: WEATHER_INSTALLATION.type,
-      configuration: WEATHER_INSTALLATION.defaultConfiguration,
-      preferredLayout: WEATHER_INSTALLATION.preferredLayout,
-    });
+    const host = fixture.nativeElement as HTMLElement;
+    const search = host.querySelector<HTMLInputElement>(
+      '[data-testid="widget-search"]',
+    );
 
-    (fixture.nativeElement as HTMLElement)
-      .querySelector<HTMLButtonElement>(
-        '[data-testid="remove-widget-installation"]',
-      )
-      ?.click();
+    if (search === null) {
+      throw new Error('The Widget Type search field is missing.');
+    }
+
+    search.value = 'conditions';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
     fixture.detectChanges();
 
-    expect(store.dashboard()?.widgets).toHaveSize(1);
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
-      'Existing Widget Instances are now unavailable.',
-    );
+    expect(
+      host.querySelectorAll('[data-testid="available-widget"]'),
+    ).toHaveSize(1);
+
+    search.value = 'does not match';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(
+      host.querySelectorAll('[data-testid="available-widget"]'),
+    ).toHaveSize(0);
   });
 });
 
@@ -140,6 +145,7 @@ async function createCatalogFixture(
     TestBed.inject(WidgetInstallationPersistenceService).save(installations);
   }
   const fixture = TestBed.createComponent(WidgetCatalogComponent);
+  fixture.componentRef.setInput('isOpen', true);
   fixture.detectChanges();
   return fixture;
 }

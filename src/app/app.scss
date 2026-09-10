@@ -1,0 +1,66 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.app-header {
+  align-items: center;
+  background: rgb(255 255 255 / 88%);
+  border-bottom: 1px solid #e1e8f2;
+  box-sizing: border-box;
+  display: flex;
+  height: 4.75rem;
+  justify-content: space-between;
+  padding: 0 3rem;
+}
+
+.app-brand {
+  align-items: center;
+  color: #0d1d3a;
+  display: flex;
+  font-size: 1.125rem;
+  font-weight: 750;
+  gap: 1rem;
+}
+
+.app-logo {
+  display: grid;
+  gap: 0.25rem;
+  grid-template-columns: repeat(2, 0.55rem);
+  grid-template-rows: repeat(2, 0.55rem);
+}
+
+.app-logo span {
+  background: #0d2858;
+  border-radius: 50%;
+}
+
+.user-placeholder {
+  align-items: center;
+  background: #eef4fb;
+  border-radius: 50%;
+  color: #132544;
+  display: flex;
+  font-size: 0.875rem;
+  font-weight: 750;
+  height: 2.75rem;
+  justify-content: center;
+  width: 2.75rem;
+}
+
+@media (max-width: 767px) {
+  .app-header {
+    height: 4rem;
+    padding: 0 1.25rem;
+  }
+
+  .app-brand {
+    font-size: 1rem;
+    gap: 0.75rem;
+  }
+
+  .user-placeholder {
+    height: 2.375rem;
+    width: 2.375rem;
+  }
+}

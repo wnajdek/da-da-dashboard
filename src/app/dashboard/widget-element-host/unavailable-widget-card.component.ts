@@ -1,5 +1,8 @@
 import { Component, input, output } from '@angular/core';
-import type { WidgetConfiguration, WidgetType } from '../workspace/dashboard.models';
+import type {
+  WidgetConfiguration,
+  WidgetType,
+} from '../workspace/dashboard.models';
 
 @Component({
   selector: 'app-unavailable-widget-card',
@@ -16,7 +19,7 @@ import type { WidgetConfiguration, WidgetType } from '../workspace/dashboard.mod
       </p>
       <button
         type="button"
-        class="remove-widget"
+        class="remove-widget host-widget-control"
         data-testid="remove-unavailable-widget"
         (click)="removed.emit()"
       >

@@ -1,109 +1,113 @@
-<form
-  class="install-widget"
-  data-testid="install-widget-form"
-  novalidate
-  (submit)="installManifest($event)"
->
-  <div class="install-widget-field">
-    <label for="manifest-url">Widget Manifest URL</label>
-    <input
-      id="manifest-url"
-      data-testid="manifest-url"
-      type="url"
-      autocomplete="url"
-      placeholder="https://widgets.example.test/manifest.json"
-      [value]="manifestUrl()"
-      (input)="updateManifestUrl($event)"
-    />
-  </div>
-  <button type="submit" [disabled]="installations.isInstalling()">
-    @if (installations.isInstalling()) {
-      Installing…
-    } @else {
-      Install Widget
-    }
-  </button>
-</form>
+@if (isOpen()) {
+  <aside class="widget-drawer" aria-labelledby="widget-drawer-title">
+    <header class="widget-drawer__header">
+      <h2 id="widget-drawer-title">Add widget</h2>
+      <button
+        type="button"
+        class="drawer-close"
+        data-testid="close-widget-drawer"
+        aria-label="Close add widget drawer"
+        (click)="closed.emit()"
+      >
+        ×
+      </button>
+    </header>
 
-@if (recoveryMessage(); as recoveryMessage) {
-  <p
-    class="installation-feedback installation-feedback--error"
-    data-testid="widget-installation-recovery"
-    role="alert"
-  >
-    {{ recoveryMessage }}
-  </p>
-}
+    <div class="widget-drawer__body">
+      <label class="search-field" for="widget-search">
+        <span class="visually-hidden">Search widgets</span>
+        <span class="search-field__icon" aria-hidden="true">⌕</span>
+        <input
+          id="widget-search"
+          data-testid="widget-search"
+          type="search"
+          placeholder="Search widgets..."
+          autocomplete="off"
+          [value]="searchQuery()"
+          (input)="updateSearchQuery($event)"
+        />
+      </label>
 
-@if (installationFeedback(); as feedback) {
-  <p
-    class="installation-feedback"
-    data-testid="widget-installation-status"
-    role="status"
-    [class.installation-feedback--error]="feedback.status === 'error'"
-  >
-    {{ feedback.message }}
-  </p>
-}
-
-@if (installations.installations().length > 0) {
-  <section
-    class="available-widgets"
-    data-testid="available-widgets"
-    aria-labelledby="available-widgets-title"
-  >
-    <div>
-      <p class="eyebrow">Widget Catalog</p>
-      <h2 id="available-widgets-title">Available Widgets</h2>
+      <div class="widget-list" data-testid="available-widgets">
+        @for (
+          installation of filteredInstallations();
+          track installation.type
+        ) {
+          <article class="drawer-widget" data-testid="available-widget">
+            <span
+              class="drawer-widget__icon"
+              [style.--widget-accent]="widgetAccent(installation.type)"
+              aria-hidden="true"
+            >
+              <span></span><span></span><span></span><span></span>
+            </span>
+            <div class="drawer-widget__details">
+              <h3>{{ installation.displayName }}</h3>
+              @if (installation.description) {
+                <p>{{ installation.description }}</p>
+              }
+            </div>
+            <button
+              type="button"
+              class="drawer-widget__add"
+              data-testid="add-widget"
+              (click)="addWidget(installation)"
+            >
+              Add
+            </button>
+          </article>
+        }
+      </div>
     </div>
-    <div class="available-widget-list">
-      @for (
-        installation of installations.installations();
-        track installation.type
-      ) {
-        <article class="available-widget" data-testid="available-widget">
-          <p class="widget-kind">{{ installation.type }}</p>
-          <h3>{{ installation.displayName }}</h3>
-          @if (installation.description) {
-            <p class="widget-caption">{{ installation.description }}</p>
-          }
-          <dl class="widget-metadata">
-            <div>
-              <dt>Version</dt>
-              <dd>{{ installation.version }}</dd>
-            </div>
-            <div>
-              <dt>Widget Element</dt>
-              <dd>{{ installation.elementTag }}</dd>
-            </div>
-            <div>
-              <dt>Preferred size</dt>
-              <dd>
-                {{ installation.preferredLayout.w }} ×
-                {{ installation.preferredLayout.h }}
-              </dd>
-            </div>
-          </dl>
-          <button
-            type="button"
-            data-testid="add-widget"
-            (click)="addWidget(installation)"
-          >
-            Add Widget
+
+    <footer class="widget-drawer__footer">
+      <form
+        class="install-widget"
+        data-testid="install-widget-form"
+        novalidate
+        (submit)="installManifest($event)"
+      >
+        <label for="manifest-url">Widget Manifest URL</label>
+        <div class="install-widget__action">
+          <input
+            id="manifest-url"
+            data-testid="manifest-url"
+            type="url"
+            autocomplete="url"
+            placeholder="https://widgets.example.test/manifest.json"
+            [value]="manifestUrl()"
+            (input)="updateManifestUrl($event)"
+          />
+          <button type="submit" [disabled]="installations.isInstalling()">
+            @if (installations.isInstalling()) {
+              Installing…
+            } @else {
+              Install
+            }
           </button>
-          <button
-            type="button"
-            class="remove-installation"
-            data-testid="remove-widget-installation"
-            [attr.aria-label]="
-              'Remove ' + installation.displayName + ' installation'
-            "
-            (click)="removeInstallation(installation)"
-          >
-            Remove installation
-          </button>
-        </article>
+        </div>
+      </form>
+
+      @if (recoveryMessage(); as recoveryMessage) {
+        <p
+          class="installation-feedback installation-feedback--error"
+          data-testid="widget-installation-recovery"
+          role="alert"
+        >
+          {{ recoveryMessage }}
+        </p>
       }
-    </div>
-  </section>
+
+      @if (installationFeedback(); as feedback) {
+        <p
+          class="installation-feedback"
+          data-testid="widget-installation-status"
+          role="status"
+          [class.installation-feedback--error]="feedback.status === 'error'"
+        >
+          {{ feedback.message }}
+        </p>
+      }
+    </footer>
+  </aside>
 }

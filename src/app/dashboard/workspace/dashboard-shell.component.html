@@ -14,13 +14,23 @@
       </button>
     </section>
   } @else if (store.dashboard(); as dashboard) {
-    <header>
-      <p class="eyebrow">Dashboard</p>
+    <header class="dashboard-header">
       <h1>{{ dashboard.title }}</h1>
-      <p class="subtitle">A workspace for your installed Widgets.</p>
+      <button
+        type="button"
+        class="add-widget-button"
+        data-testid="open-widget-drawer"
+        (click)="openWidgetDrawer()"
+      >
+        <span aria-hidden="true">+</span>
+        Add widget
+      </button>
     </header>
 
-    <app-widget-catalog />
+    <app-widget-catalog
+      [isOpen]="isWidgetDrawerOpen()"
+      (closed)="closeWidgetDrawer()"
+    />
 
     @if (store.persistenceFailureMessage(); as persistenceFailureMessage) {
       <p
@@ -38,6 +48,18 @@
       (widgetConfigurationChanged)="store.updateWidgetConfiguration($event)"
       (widgetRemoved)="store.removeWidget($event)"
     />
+
+    @if (dashboard.widgets.length === 0) {
+      <button
+        type="button"
+        class="empty-dashboard-action"
+        data-testid="empty-dashboard-add-widget"
+        (click)="openWidgetDrawer()"
+      >
+        <span class="empty-dashboard-action__icon" aria-hidden="true">+</span>
+        <span>Add a widget</span>
+      </button>
+    }
 
     @if (store.canUndoRemoval()) {
       <aside class="removal-notice" aria-live="polite">

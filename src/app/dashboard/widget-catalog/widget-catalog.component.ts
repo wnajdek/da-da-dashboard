@@ -1,8 +1,14 @@
-import { Component, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { DashboardStore } from '../workspace/dashboard.store';
 import type {
   WidgetInstallation,
-  WidgetInstallationRemovalResult,
   WidgetInstallationResult,
 } from '../widget-installation/widget-installation.models';
 import { WidgetInstallationService } from '../widget-installation/widget-installation.service';
@@ -18,19 +24,53 @@ interface InstallationFeedback {
   styleUrl: './widget-catalog.component.scss',
 })
 export class WidgetCatalogComponent {
+  readonly isOpen = input(false);
+  readonly closed = output<void>();
+
   private readonly store = inject(DashboardStore);
+  private readonly iconPalette = [
+    '#2f80ed',
+    '#20b38e',
+    '#f5a623',
+    '#e85d75',
+    '#8d6ee8',
+  ];
   protected readonly installations = inject(WidgetInstallationService);
   protected readonly recoveryMessage = this.installations.recoveryMessage;
   protected readonly manifestUrl = signal('');
+  protected readonly searchQuery = signal('');
   protected readonly installationFeedback = signal<InstallationFeedback | null>(
     null,
   );
+  protected readonly filteredInstallations = computed(() => {
+    const query = this.searchQuery().trim().toLocaleLowerCase();
+
+    if (query.length === 0) {
+      return this.installations.installations();
+    }
+
+    return this.installations
+      .installations()
+      .filter((installation) =>
+        [installation.displayName, installation.description ?? ''].some(
+          (value) => value.toLocaleLowerCase().includes(query),
+        ),
+      );
+  });
 
   protected updateManifestUrl(event: Event): void {
     const input = event.target;
 
     if (input instanceof HTMLInputElement) {
       this.manifestUrl.set(input.value);
+    }
+  }
+
+  protected updateSearchQuery(event: Event): void {
+    const input = event.target;
+
+    if (input instanceof HTMLInputElement) {
+      this.searchQuery.set(input.value);
     }
   }
 
@@ -53,15 +93,16 @@ export class WidgetCatalogComponent {
     });
   }
 
-  protected removeInstallation(installation: WidgetInstallation): void {
-    this.presentInstallationResult(
-      this.installations.removeInstallation(installation.type),
+  protected widgetAccent(widgetType: string): string {
+    const hash = [...widgetType].reduce(
+      (value, character) => (value * 31 + character.charCodeAt(0)) | 0,
+      0,
     );
+
+    return this.iconPalette[Math.abs(hash) % this.iconPalette.length];
   }
 
-  private presentInstallationResult(
-    result: WidgetInstallationResult | WidgetInstallationRemovalResult,
-  ): void {
+  private presentInstallationResult(result: WidgetInstallationResult): void {
     this.installationFeedback.set({
       status: result.status === 'rejected' ? 'error' : 'success',
       message: result.message,

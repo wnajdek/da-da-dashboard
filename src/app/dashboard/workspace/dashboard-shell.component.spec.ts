@@ -4,6 +4,7 @@ import {
   createComponent,
   createEnvironmentInjector,
   provideZonelessChangeDetection,
+  signal,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DashboardShellComponent } from './dashboard-shell.component';
@@ -23,6 +24,7 @@ import {
   type WidgetManifestSource,
 } from '../widget-installation/widget-manifest-source';
 import { TRUSTED_MANIFEST_ORIGINS } from '../widget-installation/widget-trust-policy';
+import { BROWSER_VIEWPORT } from '../grid-layout/browser-viewport';
 import type { Dashboard, WidgetConfiguration } from './dashboard.models';
 import { MemoryStorage } from '../../testing/memory-storage';
 
@@ -75,7 +77,7 @@ describe('DashboardShellComponent', () => {
       },
     );
 
-    installWidget(fixture, MANIFEST_URL);
+    await installWidget(fixture, MANIFEST_URL);
     await render(fixture);
     getHost(fixture)
       .querySelector<HTMLButtonElement>('[data-testid="add-widget"]')
@@ -177,6 +179,7 @@ async function createShellFixture(
     imports: [DashboardShellComponent],
     providers: [
       provideZonelessChangeDetection(),
+      { provide: BROWSER_VIEWPORT, useValue: { width: signal(1_280) } },
       { provide: DASHBOARD_STORAGE, useValue: storage },
       { provide: TRUSTED_MANIFEST_ORIGINS, useValue: [TRUSTED_ORIGIN] },
       { provide: WIDGET_MANIFEST_SOURCE, useValue: source },
@@ -192,11 +195,15 @@ async function createShellFixture(
   return fixture;
 }
 
-function installWidget(
+async function installWidget(
   fixture: ComponentFixture<DashboardShellComponent>,
   manifestUrl: string,
-): void {
+): Promise<void> {
   const host = getHost(fixture);
+  host
+    .querySelector<HTMLButtonElement>('[data-testid="open-widget-drawer"]')
+    ?.click();
+  await render(fixture);
   const input = host.querySelector<HTMLInputElement>(
     '[data-testid="manifest-url"]',
   );

@@ -70,7 +70,7 @@ button {
   display: none;
 }
 
+.grid-stack--single-column .host-widget-control,
 .grid-stack--single-column .widget-controls {
-  align-items: stretch;
-  flex-direction: column;
+  display: none;
 }

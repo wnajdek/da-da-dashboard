@@ -1,9 +1,15 @@
 @import "gridstack/dist/gridstack.css";
 
 html {
-  background: #f5f7fb;
+  background: #f8fbff;
   font-family: Inter, system-ui, sans-serif;
 }
 body {
+  color: #0d1d3a;
   margin: 0;
+}
+
+button,
+input {
+  font: inherit;
 }
