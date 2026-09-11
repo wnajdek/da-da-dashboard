@@ -75,8 +75,7 @@ export class WidgetInstallationService {
 
       if (
         this.installationsState().some(
-          (installation) =>
-            installation.manifestUrl === trustedManifestUrl.url,
+          (installation) => installation.manifestUrl === trustedManifestUrl.url,
         )
       ) {
         return this.reject('This Widget Manifest is already installed.');
@@ -93,11 +92,17 @@ export class WidgetInstallationService {
       if (
         this.installationsState().some(
           (installation) =>
-            installation.elementTag === validation.manifest.elementTag,
+            installation.elementTag === validation.manifest.elementTag ||
+            installation.elementTag ===
+              validation.manifest.settingsElementTag ||
+            installation.settingsElementTag ===
+              validation.manifest.elementTag ||
+            installation.settingsElementTag ===
+              validation.manifest.settingsElementTag,
         )
       ) {
         return this.reject(
-          'This Widget Element tag is already assigned to another installed Widget Type.',
+          'A Widget Element tag is already assigned to another installed Widget Type.',
         );
       }
 

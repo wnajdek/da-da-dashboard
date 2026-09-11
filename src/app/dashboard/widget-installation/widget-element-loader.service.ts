@@ -19,25 +19,29 @@ export class WidgetElementLoaderService {
       throw new Error('The Widget Installation is no longer trusted.');
     }
 
-    const existingSource = this.elementSources.get(installation.elementTag);
+    const elementTags = [
+      installation.elementTag,
+      installation.settingsElementTag,
+    ];
+    let load = this.entryBundlePromises.get(installation.entryBundleUrl);
 
-    if (existingSource !== undefined) {
-      if (existingSource === installation.entryBundleUrl) {
-        return;
+    for (const tag of elementTags) {
+      const existingSource = this.elementSources.get(tag);
+
+      if (existingSource !== undefined) {
+        if (existingSource !== installation.entryBundleUrl) {
+          throw new Error(
+            `The Widget Element tag ${tag} is already loaded from another bundle.`,
+          );
+        }
+
+        continue;
       }
 
-      throw new Error(
-        `The Widget Element tag ${installation.elementTag} is already loaded from another bundle.`,
-      );
+      if (load === undefined && this.elementRegistry.isRegistered(tag)) {
+        throw new Error(`The Widget Element tag ${tag} is already registered.`);
+      }
     }
-
-    if (this.elementRegistry.isRegistered(installation.elementTag)) {
-      throw new Error(
-        `The Widget Element tag ${installation.elementTag} is already registered.`,
-      );
-    }
-
-    let load = this.entryBundlePromises.get(installation.entryBundleUrl);
 
     if (load === undefined) {
       load = this.entryBundleLoader.load(installation.entryBundleUrl);
@@ -51,15 +55,14 @@ export class WidgetElementLoaderService {
       throw error;
     }
 
-    if (!this.elementRegistry.isRegistered(installation.elementTag)) {
-      throw new Error(
-        `The Widget bundle did not register ${installation.elementTag}.`,
-      );
+    for (const tag of elementTags) {
+      if (!this.elementRegistry.isRegistered(tag)) {
+        throw new Error(`The Widget bundle did not register ${tag}.`);
+      }
     }
 
-    this.elementSources.set(
-      installation.elementTag,
-      installation.entryBundleUrl,
-    );
+    for (const tag of elementTags) {
+      this.elementSources.set(tag, installation.entryBundleUrl);
+    }
   }
 }

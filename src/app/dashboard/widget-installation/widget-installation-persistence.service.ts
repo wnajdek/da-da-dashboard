@@ -67,8 +67,12 @@ export class WidgetInstallationPersistenceService implements WidgetInstallationP
         new Set(validInstallations.map((installation) => installation.type))
           .size !== validInstallations.length ||
         new Set(
-          validInstallations.map((installation) => installation.elementTag),
-        ).size !== validInstallations.length
+          validInstallations.flatMap((installation) => [
+            installation.elementTag,
+            installation.settingsElementTag,
+          ]),
+        ).size !==
+          validInstallations.length * 2
       ) {
         return {
           status: 'recovery',

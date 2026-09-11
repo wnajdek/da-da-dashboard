@@ -26,11 +26,12 @@ describe('WidgetInstallationPersistenceService', () => {
   it('stores and restores installations under a key independent from the Dashboard snapshot', () => {
     const installation: WidgetInstallation = {
       manifestUrl: 'https://widgets.example.test/weather/manifest.json',
-      manifestVersion: 1,
+      manifestVersion: 2,
       type: 'weather',
       displayName: 'Weather',
       version: '1.0.0',
       elementTag: 'trusted-weather-widget',
+      settingsElementTag: 'trusted-weather-widget-settings',
       entryBundleUrl: 'https://widgets.example.test/weather/entry.js',
       defaultConfiguration: { location: 'Warsaw' },
       preferredLayout: { w: 4, h: 3 },
@@ -57,11 +58,12 @@ describe('WidgetInstallationPersistenceService', () => {
       installations: [
         {
           manifestUrl: 'https://widgets.example.test/weather/manifest.json',
-          manifestVersion: 1,
+          manifestVersion: 2,
           type: 'weather',
           displayName: 'Weather',
           version: '1.0.0',
           elementTag: 'notacustomelement',
+          settingsElementTag: 'weather-widget-settings',
           entryBundleUrl: 'https://widgets.example.test/weather/entry.js',
           defaultConfiguration: {},
           preferredLayout: { w: 4, h: 3 },

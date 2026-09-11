@@ -113,6 +113,57 @@ button {
   margin: 0;
 }
 
+.widget-settings-backdrop {
+  background: rgb(13 29 58 / 22%);
+  inset: 0;
+  position: fixed;
+  z-index: 20;
+}
+
+.widget-settings-drawer {
+  background: #fff;
+  box-shadow: -0.75rem 0 2rem rgb(23 32 51 / 16%);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  inset: 0 0 0 auto;
+  max-width: 100%;
+  padding: 1.75rem;
+  position: fixed;
+  width: 28rem;
+  z-index: 21;
+}
+
+.widget-settings-drawer__header {
+  align-items: center;
+  border-bottom: 1px solid #d9e0ea;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-bottom: 1.25rem;
+}
+
+.widget-settings-drawer h2 {
+  color: #0d1d3a;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.widget-settings-drawer__close {
+  background: transparent;
+  color: #0d1d3a;
+  font-size: 2rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+}
+
+.widget-settings-drawer__content {
+  min-height: 0;
+  overflow: auto;
+  padding-top: 1.25rem;
+}
+
 @media (max-width: 767px) {
   .dashboard {
     min-height: calc(100vh - 4rem);
@@ -125,6 +176,11 @@ button {
 
   .add-widget-button,
   .empty-dashboard-action {
+    display: none;
+  }
+
+  .widget-settings-drawer,
+  .widget-settings-backdrop {
     display: none;
   }
 }

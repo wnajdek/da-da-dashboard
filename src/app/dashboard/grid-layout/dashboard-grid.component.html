@@ -14,13 +14,14 @@
       [attr.gs-w]="widget.layout.w"
       [attr.gs-h]="widget.layout.h"
     >
-      <div class="grid-stack-item-content">
+      <div class="grid-stack-item-content widget-frame">
         @if (installation; as resolvedInstallation) {
           <app-widget-element
             [installation]="resolvedInstallation"
             [widgetId]="widget.id"
             [configuration]="widget.configuration"
             (changed)="widgetConfigurationChanged.emit($event)"
+            (unavailable)="markWidgetUnavailable(widget.id)"
             (removed)="widgetRemoved.emit(widget.id)"
           />
         } @else {
@@ -30,27 +31,60 @@
             (removed)="widgetRemoved.emit(widget.id)"
           />
         }
-        <div class="widget-controls">
-          <button
-            type="button"
-            class="widget-drag-handle"
-            data-testid="move-widget-instance"
-            aria-label="Move widget"
-          >
-            Move
-          </button>
-          @if (installation) {
+
+        @if (!narrowScreen()) {
+          <div class="widget-frame__controls">
             <button
               type="button"
-              class="remove-widget"
-              data-testid="remove-widget-instance"
-              aria-label="Remove widget"
-              (click)="widgetRemoved.emit(widget.id)"
+              class="widget-drag-handle"
+              aria-label="Move widget"
+              title="Drag to move widget"
             >
-              Remove widget
+              <span aria-hidden="true">⠿</span>
             </button>
-          }
-        </div>
+            <button
+              type="button"
+              class="widget-menu-trigger"
+              data-testid="widget-action-menu"
+              aria-label="Widget actions"
+              [cdkMenuTriggerFor]="widgetActionMenu"
+            >
+              <span aria-hidden="true">⋮</span>
+            </button>
+          </div>
+
+          <ng-template #widgetActionMenu>
+            <div class="widget-action-menu" cdkMenu>
+              @if (installation && !isWidgetUnavailable(widget.id)) {
+                <button
+                  type="button"
+                  cdkMenuItem
+                  data-testid="edit-widget-instance"
+                  (click)="widgetEditRequested.emit(widget)"
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  cdkMenuItem
+                  data-testid="duplicate-widget-instance"
+                  (click)="widgetDuplicated.emit(widget.id)"
+                >
+                  Duplicate
+                </button>
+              }
+              <button
+                type="button"
+                cdkMenuItem
+                class="widget-action-menu__remove"
+                data-testid="remove-widget-instance"
+                (click)="widgetRemoved.emit(widget.id)"
+              >
+                Remove
+              </button>
+            </div>
+          </ng-template>
+        }
       </div>
     </section>
   }

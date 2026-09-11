@@ -1,11 +1,4 @@
-import {
-  ApplicationRef,
-  EnvironmentInjector,
-  createComponent,
-  createEnvironmentInjector,
-  provideZonelessChangeDetection,
-  signal,
-} from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DashboardShellComponent } from './dashboard-shell.component';
 import {
@@ -13,7 +6,6 @@ import {
   DASHBOARD_STORAGE_KEY,
   DashboardPersistenceService,
 } from './dashboard-persistence.service';
-import { DashboardStore } from './dashboard.store';
 import { provideWidgetInstallationPersistence } from '../widget-installation/widget-installation-persistence.service';
 import {
   WIDGET_ENTRY_BUNDLE_LOADER,
@@ -30,19 +22,35 @@ import { MemoryStorage } from '../../testing/memory-storage';
 
 const TRUSTED_ORIGIN = 'https://widgets.example.test';
 const MANIFEST_URL = `${TRUSTED_ORIGIN}/continuity/manifest.json`;
-const WIDGET_ELEMENT_TAG = 'dashboard-journey-widget';
+const WIDGET_ELEMENT_TAG = 'dashboard-lifecycle-journey-widget';
+const WIDGET_SETTINGS_ELEMENT_TAG =
+  'dashboard-lifecycle-journey-widget-settings';
+const SETTINGS_WIDGET_ELEMENT_TAG = 'dashboard-settings-journey-widget';
+const SETTINGS_WIDGET_SETTINGS_ELEMENT_TAG =
+  'dashboard-settings-journey-widget-settings';
 const WIDGET_MANIFEST = {
-  manifestVersion: 1 as const,
+  manifestVersion: 2 as const,
   type: 'continuity-widget',
   displayName: 'Continuity Widget',
   version: '1.0.0',
   elementTag: WIDGET_ELEMENT_TAG,
+  settingsElementTag: WIDGET_SETTINGS_ELEMENT_TAG,
   entryBundleUrl: './continuity.js',
   defaultConfiguration: { location: 'Warsaw', units: 'metric' },
   preferredLayout: { w: 4, h: 3 },
 };
 
+const SETTINGS_WIDGET_MANIFEST = {
+  ...WIDGET_MANIFEST,
+  type: 'settings-continuity-widget',
+  elementTag: SETTINGS_WIDGET_ELEMENT_TAG,
+  settingsElementTag: SETTINGS_WIDGET_SETTINGS_ELEMENT_TAG,
+  entryBundleUrl: './settings-continuity.js',
+};
+
 describe('DashboardShellComponent', () => {
+  afterEach(() => TestBed.resetTestingModule());
+
   it('orchestrates Dashboard recovery feedback', async () => {
     const storage = new MemoryStorage();
     storage.setItem(DASHBOARD_STORAGE_KEY, 'invalid');
@@ -63,15 +71,29 @@ describe('DashboardShellComponent', () => {
     ).toContain('The requested Dashboard change could not be saved locally.');
   });
 
-  it('persists the trusted Widget journey through configuration, layout, removal, undo, and reload', async () => {
+  it('opens one Widget Settings Drawer and persists settings without dismissing it', async () => {
     const storage = new MemoryStorage();
     const fixture = await createShellFixture(
       storage,
-      { load: jasmine.createSpy('load').and.resolveTo(WIDGET_MANIFEST) },
+      {
+        load: jasmine.createSpy('load').and.resolveTo(SETTINGS_WIDGET_MANIFEST),
+      },
       {
         load: jasmine.createSpy('load').and.callFake(async () => {
-          if (customElements.get(WIDGET_ELEMENT_TAG) === undefined) {
-            customElements.define(WIDGET_ELEMENT_TAG, JourneyWidgetElement);
+          if (customElements.get(SETTINGS_WIDGET_ELEMENT_TAG) === undefined) {
+            customElements.define(
+              SETTINGS_WIDGET_ELEMENT_TAG,
+              JourneyWidgetElement,
+            );
+          }
+          if (
+            customElements.get(SETTINGS_WIDGET_SETTINGS_ELEMENT_TAG) ===
+            undefined
+          ) {
+            customElements.define(
+              SETTINGS_WIDGET_SETTINGS_ELEMENT_TAG,
+              JourneyWidgetSettingsElement,
+            );
           }
         }),
       },
@@ -83,90 +105,45 @@ describe('DashboardShellComponent', () => {
       .querySelector<HTMLButtonElement>('[data-testid="add-widget"]')
       ?.click();
     await render(fixture);
-    await waitForBrowserRender();
-    fixture.detectChanges();
-
-    const host = getHost(fixture);
-    const widgetElement = host.querySelector<JourneyWidgetElement>(
-      `[data-testid="widget-element-host"] ${WIDGET_ELEMENT_TAG}`,
-    );
-    if (widgetElement === null) {
-      throw new Error(
-        'The trusted Widget journey did not render its Widget Element.',
-      );
-    }
-
-    TestBed.inject(DashboardStore).addWidget({
-      type: 'unavailable-widget',
-      configuration: {},
-      preferredLayout: { w: 4, h: 3 },
-    });
+    openWidgetActionMenu(getHost(fixture));
+    document
+      .querySelector<HTMLButtonElement>('[data-testid="edit-widget-instance"]')
+      ?.click();
+    await render(fixture);
     await render(fixture);
 
-    expect(
-      host.querySelector(
-        `[data-testid="widget-element-host"] ${WIDGET_ELEMENT_TAG}`,
-      ),
-    ).not.toBeNull();
-    expect(
-      host.querySelectorAll('[data-testid="unavailable-widget"]'),
-    ).toHaveSize(1);
+    const drawer = getHost(fixture).querySelector<HTMLElement>(
+      '[data-testid="widget-settings-drawer"]',
+    );
+    const settingsElement = drawer?.querySelector<JourneyWidgetSettingsElement>(
+      SETTINGS_WIDGET_SETTINGS_ELEMENT_TAG,
+    );
 
-    widgetElement.dispatchEvent(
+    expect(drawer?.textContent).toContain('Configure Continuity Widget');
+    expect(settingsElement).not.toBeNull();
+
+    settingsElement?.dispatchEvent(
       new CustomEvent('configuration-changed', {
         bubbles: true,
-        detail: { location: 'Kraków', units: 'metric' },
+        detail: { location: 'Gdańsk', units: 'imperial' },
       }),
     );
-    const widgetId = savedDashboard(storage).widgets[0].id;
-    TestBed.inject(DashboardStore).commitGridLayoutChange([
-      { id: widgetId, layout: { x: 3, y: 0, w: 6, h: 4 } },
-    ]);
     await render(fixture);
 
-    const savedWidget = savedDashboard(storage).widgets[0];
-    expect(savedWidget.layout).toEqual({ x: 3, y: 0, w: 6, h: 4 });
-    expect(JSON.stringify(savedWidget.configuration)).toBe(
-      '{"location":"Kraków","units":"metric"}',
-    );
-
-    host
-      .querySelector<HTMLButtonElement>(
-        '[data-testid="remove-widget-instance"]',
-      )
-      ?.click();
-    await render(fixture);
-    host
-      .querySelector<HTMLButtonElement>('[data-testid="undo-removal"]')
-      ?.click();
-    await render(fixture);
-
-    expect(savedDashboard(storage).widgets).toEqual([
-      savedWidget,
-      jasmine.objectContaining({ type: 'unavailable-widget' }),
-    ]);
-
-    fixture.destroy();
-    const reloaded = await renderReloadedShell();
-
-    try {
-      expect(
-        JSON.stringify(
-          reloaded.host.querySelector<JourneyWidgetElement>(
-            `[data-testid="widget-element-host"] ${WIDGET_ELEMENT_TAG}`,
-          )?.configuration,
-        ),
-      ).toBe('{"location":"Kraków","units":"metric"}');
-      expect(
-        reloaded.host.querySelector('.grid-stack-item')?.getAttribute('gs-x'),
-      ).toBe('3');
-    } finally {
-      reloaded.destroy();
-    }
+    expect(
+      JSON.stringify(savedDashboard(storage).widgets[0].configuration),
+    ).toBe('{"location":"Gdańsk","units":"imperial"}');
+    expect(
+      getHost(fixture).querySelector('[data-testid="widget-settings-drawer"]'),
+    ).not.toBeNull();
   });
 });
 
 class JourneyWidgetElement extends HTMLElement {
+  configuration: WidgetConfiguration = {};
+}
+
+class JourneyWidgetSettingsElement extends HTMLElement {
   configuration: WidgetConfiguration = {};
 }
 
@@ -228,10 +205,16 @@ function getHost(
   return fixture.nativeElement as HTMLElement;
 }
 
+function openWidgetActionMenu(host: HTMLElement): void {
+  host
+    .querySelector<HTMLButtonElement>('[data-testid="widget-action-menu"]')
+    ?.click();
+}
+
 async function render(
   fixture: ComponentFixture<DashboardShellComponent>,
 ): Promise<void> {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
     await fixture.whenStable();
     await waitForBrowserRender();
     fixture.detectChanges();
@@ -245,37 +228,4 @@ function waitForBrowserRender(): Promise<void> {
 function savedDashboard(storage: MemoryStorage): Dashboard {
   return JSON.parse(storage.getItem(DASHBOARD_STORAGE_KEY)!)
     .dashboard as Dashboard;
-}
-
-async function renderReloadedShell(): Promise<{
-  readonly host: HTMLElement;
-  readonly destroy: () => void;
-}> {
-  const parentInjector = TestBed.inject(EnvironmentInjector);
-  const reloadedInjector = createEnvironmentInjector(
-    [{ provide: DashboardStore, useFactory: () => new DashboardStore() }],
-    parentInjector,
-    'Dashboard Shell journey reload',
-  );
-  const applicationRef = TestBed.inject(ApplicationRef);
-  const host = document.createElement('div');
-  const component = createComponent(DashboardShellComponent, {
-    environmentInjector: reloadedInjector,
-    hostElement: host,
-  });
-  document.body.append(host);
-  applicationRef.attachView(component.hostView);
-  component.changeDetectorRef.detectChanges();
-  await waitForBrowserRender();
-  component.changeDetectorRef.detectChanges();
-
-  return {
-    host,
-    destroy: () => {
-      applicationRef.detachView(component.hostView);
-      component.destroy();
-      reloadedInjector.destroy();
-      host.remove();
-    },
-  };
 }

@@ -9,16 +9,22 @@ import { MemoryStorage } from '../../testing/memory-storage';
 
 describe('DashboardStore', () => {
   let storage: MemoryStorage;
+  let widgetInstanceIdIndex: number;
+  const widgetInstanceIds = [
+    'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11',
+    'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd12',
+  ];
 
   beforeEach(() => {
     storage = new MemoryStorage();
+    widgetInstanceIdIndex = 0;
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
         { provide: DASHBOARD_STORAGE, useValue: storage },
         {
           provide: WIDGET_INSTANCE_ID_FACTORY,
-          useValue: () => 'f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd11',
+          useValue: () => widgetInstanceIds[widgetInstanceIdIndex++],
         },
       ],
     });
@@ -170,6 +176,26 @@ describe('DashboardStore', () => {
     expect(JSON.stringify(store.dashboard()!.widgets[0].configuration)).toBe(
       '{"location":"Gdańsk","units":"imperial","forecastDays":5}',
     );
+  });
+
+  it('duplicates a Widget Instance with its configuration and size at the next grid position', () => {
+    const store = TestBed.inject(DashboardStore);
+    store.addWidget({
+      type: 'weather',
+      configuration: { location: 'Warsaw', units: 'metric' },
+      preferredLayout: { w: 4, h: 3 },
+    });
+    const original = store.dashboard()!.widgets[0];
+
+    expect(store.duplicateWidget(original.id)).toEqual({ status: 'success' });
+    const duplicate = store.dashboard()!.widgets[1];
+    expect(duplicate.id).toBe('f09f1c23-2b6d-4f2d-9ca5-8b7be4a5dd12');
+    expect(duplicate.type).toBe('weather');
+    expect(duplicate.configuration).not.toBe(original.configuration);
+    expect(JSON.stringify(duplicate.configuration)).toBe(
+      '{"location":"Warsaw","units":"metric"}',
+    );
+    expect(duplicate.layout).toEqual({ x: 0, y: 3, w: 4, h: 3 });
   });
 
   it('persists a runtime Widget layout through a Dashboard reload', () => {

@@ -10,11 +10,14 @@ import {
   inject,
   input,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
+import { CdkMenu, CdkMenuItem, CdkMenuTrigger } from '@angular/cdk/menu';
 import {
   Dashboard,
   WidgetConfigurationChange,
+  WidgetInstance,
   WidgetLayoutChange,
 } from '../workspace/dashboard.models';
 import { BROWSER_VIEWPORT } from './browser-viewport';
@@ -29,7 +32,13 @@ import { WidgetInstallationService } from '../widget-installation/widget-install
 
 @Component({
   selector: 'app-dashboard-grid',
-  imports: [UnavailableWidgetCardComponent, WidgetElementComponent],
+  imports: [
+    CdkMenu,
+    CdkMenuItem,
+    CdkMenuTrigger,
+    UnavailableWidgetCardComponent,
+    WidgetElementComponent,
+  ],
   providers: [{ provide: DASHBOARD_GRID, useClass: GridStackDashboardGrid }],
   templateUrl: './dashboard-grid.component.html',
   styleUrl: './dashboard-grid.component.scss',
@@ -38,7 +47,12 @@ export class DashboardGridComponent implements AfterViewInit {
   readonly dashboard = input.required<Dashboard>();
   readonly layoutCommitted = output<readonly WidgetLayoutChange[]>();
   readonly widgetConfigurationChanged = output<WidgetConfigurationChange>();
+  readonly widgetEditRequested = output<WidgetInstance>();
+  readonly widgetDuplicated = output<WidgetInstance['id']>();
   readonly widgetRemoved = output<string>();
+  private readonly unavailableWidgetIdsState = signal<ReadonlySet<string>>(
+    new Set(),
+  );
   protected readonly narrowScreen = computed(
     () => this.viewport.width() <= DASHBOARD_GRID_CONFIG.narrowScreenBreakpoint,
   );
@@ -71,6 +85,14 @@ export class DashboardGridComponent implements AfterViewInit {
 
   protected installationFor(type: string) {
     return this.installations.installationFor(type);
+  }
+
+  protected isWidgetUnavailable(id: WidgetInstance['id']): boolean {
+    return this.unavailableWidgetIdsState().has(id);
+  }
+
+  protected markWidgetUnavailable(id: WidgetInstance['id']): void {
+    this.unavailableWidgetIdsState.update((ids) => new Set([...ids, id]));
   }
 
   private synchronizeGridItems(): void {

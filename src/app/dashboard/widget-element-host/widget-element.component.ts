@@ -51,21 +51,23 @@ interface MountAttempt {
         [configuration]="configuration()"
         (removed)="removed.emit()"
       />
-    } @else {
-      <div
-        #elementHost
-        class="widget-content"
-        data-testid="widget-element-host"
-      ></div>
     }
+    <div
+      #elementHost
+      class="widget-content"
+      data-testid="widget-element-host"
+      [hidden]="state() !== 'ready'"
+    ></div>
   `,
   styleUrl: './widget-card.scss',
 })
 export class WidgetElementComponent {
   readonly installation = input.required<WidgetInstallation>();
+  readonly elementTag = input<string>();
   readonly widgetId = input.required<WidgetInstance['id']>();
   readonly configuration = input.required<WidgetConfiguration>();
   readonly changed = output<WidgetConfigurationChange>();
+  readonly unavailable = output<void>();
   readonly removed = output<void>();
 
   protected readonly state = signal<'loading' | 'ready' | 'unavailable'>(
@@ -82,7 +84,8 @@ export class WidgetElementComponent {
   constructor() {
     effect(() => {
       const installation = this.installation();
-      afterNextRender(() => void this.beginMount(installation), {
+      const elementTag = this.elementTag() ?? installation.elementTag;
+      afterNextRender(() => void this.beginMount(installation, elementTag), {
         injector: this.injector,
       });
     });
@@ -92,6 +95,14 @@ export class WidgetElementComponent {
       this.updateMountedConfiguration(configuration);
     });
 
+    effect(() => {
+      this.elementHost();
+
+      if (this.state() === 'ready' && this.attempt !== null) {
+        this.attachRenderedElement(this.attempt);
+      }
+    });
+
     this.destroyRef.onDestroy(() => {
       this.destroyed = true;
       this.cleanupAttempt(this.attempt);
@@ -99,7 +110,10 @@ export class WidgetElementComponent {
     });
   }
 
-  private async beginMount(installation: WidgetInstallation): Promise<void> {
+  private async beginMount(
+    installation: WidgetInstallation,
+    elementTag: string,
+  ): Promise<void> {
     const attempt = this.startMountAttempt();
 
     try {
@@ -109,9 +123,7 @@ export class WidgetElementComponent {
         return;
       }
 
-      const element = document.createElement(
-        installation.elementTag,
-      ) as WidgetElement;
+      const element = document.createElement(elementTag) as WidgetElement;
       attempt.element = element;
       attempt.onConfigurationChanged = (event: Event) =>
         this.handleConfigurationChanged(attempt, event);
@@ -145,27 +157,22 @@ export class WidgetElementComponent {
   }
 
   private attachRenderedElement(attempt: MountAttempt): void {
-    afterNextRender(
-      () => {
-        const element = attempt.element;
-        const readyHost = this.elementHost()?.nativeElement;
+    const element = attempt.element;
+    const readyHost = this.elementHost()?.nativeElement;
 
-        if (
-          element === null ||
-          readyHost === undefined ||
-          !this.isCurrentAttempt(attempt)
-        ) {
-          return;
-        }
+    if (
+      element === null ||
+      readyHost === undefined ||
+      !this.isCurrentAttempt(attempt)
+    ) {
+      return;
+    }
 
-        try {
-          readyHost.replaceChildren(element);
-        } catch {
-          this.failAttempt(attempt);
-        }
-      },
-      { injector: this.injector },
-    );
+    try {
+      readyHost.replaceChildren(element);
+    } catch {
+      this.failAttempt(attempt);
+    }
   }
 
   private updateMountedConfiguration(configuration: WidgetConfiguration): void {
@@ -218,6 +225,7 @@ export class WidgetElementComponent {
 
     this.cleanupAttempt(attempt);
     this.state.set('unavailable');
+    this.unavailable.emit();
   }
 
   private cleanupAttempt(attempt: MountAttempt | null): void {

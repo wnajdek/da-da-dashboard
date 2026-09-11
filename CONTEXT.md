@@ -24,9 +24,10 @@ may install a Widget Type. It is not a source of untrusted executable code.
 ## Widget Manifest
 
 A declarative description produced by a Widget Author. It identifies the Widget
-Type, display metadata, preferred Grid Layout size, Custom Element tag, and
-entry bundle needed to load the Widget Element. It does not contain Dashboard
-instance identity, placement, order, or persisted Widget Configuration.
+Type, display metadata, preferred Grid Layout size, content and settings Custom
+Element tags, and entry bundle needed to load them. It does not contain
+Dashboard instance identity, placement, order, or persisted Widget
+Configuration.
 
 ## Widget Installation
 
@@ -52,11 +53,25 @@ A browser Custom Element registered by a loaded trusted Widget bundle. The
 Dashboard uses its declared tag, properties, and Custom Events rather than
 depending on the Widget's Angular implementation.
 
+## Widget Settings Element
+
+A browser Custom Element registered by the Widget's trusted entry bundle and
+declared in its Widget Manifest. The Dashboard mounts it in the settings drawer
+to render the Widget Settings UI.
+
+## Widget Settings Drawer
+
+The Dashboard-owned desktop panel that presents one Widget Settings Element at a
+time. It identifies the selected Widget Type and may be dismissed without
+changing the Widget Instance.
+
 ## Widget Frame
 
 The Dashboard-owned visual wrapper around a Widget Element or Unavailable
-Widget. It provides shared card chrome and Widget Instance controls; it does
-not own Widget-specific content.
+Widget. For an available Widget it provides shared card chrome and the Edit,
+Duplicate, and Remove Widget Instance controls; for an Unavailable Widget it
+provides only Remove. It does not own Widget-specific content or expose controls
+in the mobile read-only Dashboard view.
 _Avoid_: widget wrapper, widget card
 
 ## Widget Author
@@ -71,6 +86,8 @@ A persisted Widget Instance whose type cannot currently be resolved to a
 renderable implementation. It remains part of its Dashboard and is rendered as
 an isolated unavailable-widget card so that it cannot prevent the remaining
 Widget Instances from being used.
+This includes a Widget whose trusted bundle does not register either Element
+declared by its Manifest.
 
 ## Widget Configuration
 
@@ -80,10 +97,11 @@ Widget's display data.
 
 ## Widget Settings UI
 
-The Widget Author's user interface, rendered inside its Widget Element, for
-viewing and changing Widget Configuration. It emits a serializable replacement
-configuration for the Dashboard to persist; the Dashboard does not render
-Widget-Type-specific settings forms.
+The Widget Author's user interface for viewing and changing Widget
+Configuration. It is presented in a Dashboard-owned settings drawer and emits a
+serializable replacement configuration for the Dashboard to persist; the
+Dashboard does not render Widget-Type-specific settings forms. Persisting a
+replacement does not dismiss the drawer.
 
 ## Grid Layout
 

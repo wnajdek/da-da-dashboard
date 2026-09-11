@@ -9,7 +9,7 @@ import {
 } from '../workspace/dashboard-decoder';
 import { decodeJsonObject, isRecord } from '../workspace/json-value';
 
-export const SUPPORTED_WIDGET_MANIFEST_VERSION = 1 as const;
+export const SUPPORTED_WIDGET_MANIFEST_VERSION = 2 as const;
 
 export interface WidgetManifest {
   readonly manifestVersion: typeof SUPPORTED_WIDGET_MANIFEST_VERSION;
@@ -18,6 +18,7 @@ export interface WidgetManifest {
   readonly description?: string;
   readonly version: string;
   readonly elementTag: string;
+  readonly settingsElementTag: string;
   readonly entryBundleUrl: string;
   readonly defaultConfiguration: WidgetConfiguration;
   readonly preferredLayout: Pick<GridLayout, 'w' | 'h'>;
@@ -56,6 +57,7 @@ export function validateWidgetManifest(
   const description = value['description'];
   const version = value['version'];
   const elementTag = value['elementTag'];
+  const settingsElementTag = value['settingsElementTag'];
   const entryBundleUrl = value['entryBundleUrl'];
   const defaultConfiguration = value['defaultConfiguration'];
   const preferredLayout = value['preferredLayout'];
@@ -70,6 +72,8 @@ export function validateWidgetManifest(
     (description !== undefined && typeof description !== 'string') ||
     !isNonEmptyString(version) ||
     !isCustomElementTag(elementTag) ||
+    !isCustomElementTag(settingsElementTag) ||
+    settingsElementTag === elementTag ||
     !isNonEmptyString(entryBundleUrl) ||
     decodedConfiguration === null ||
     decodedPreferredLayout === null
@@ -95,6 +99,7 @@ export function validateWidgetManifest(
       ...(description === undefined ? {} : { description: description.trim() }),
       version: version.trim(),
       elementTag,
+      settingsElementTag,
       entryBundleUrl: resolvedEntryBundleUrl,
       defaultConfiguration: decodedConfiguration,
       preferredLayout: decodedPreferredLayout,

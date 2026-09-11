@@ -13,11 +13,12 @@ import { TRUSTED_MANIFEST_ORIGINS } from './widget-trust-policy';
 describe('WidgetElementLoaderService', () => {
   const installation: WidgetInstallation = {
     manifestUrl: 'https://widgets.example.test/weather/manifest.json',
-    manifestVersion: 1,
+    manifestVersion: 2,
     type: 'weather',
     displayName: 'Weather',
     version: '1.0.0',
     elementTag: 'loader-weather-widget',
+    settingsElementTag: 'loader-weather-widget-settings',
     entryBundleUrl: 'https://widgets.example.test/weather/entry.js',
     defaultConfiguration: { location: 'Warsaw', units: 'metric' },
     preferredLayout: { w: 4, h: 3 },
@@ -28,6 +29,7 @@ describe('WidgetElementLoaderService', () => {
     const loader: WidgetEntryBundleLoader = {
       load: jasmine.createSpy('load').and.callFake(async () => {
         registeredTags.add(installation.elementTag);
+        registeredTags.add(installation.settingsElementTag);
       }),
     };
     configure(loader, { isRegistered: (tag) => registeredTags.has(tag) });
@@ -48,6 +50,7 @@ describe('WidgetElementLoaderService', () => {
           new Promise<void>((resolve) => {
             finishLoading = () => {
               registeredTags.add(installation.elementTag);
+              registeredTags.add(installation.settingsElementTag);
               resolve();
             };
           }),
@@ -77,6 +80,24 @@ describe('WidgetElementLoaderService', () => {
 
     await expectAsync(elementLoader.load(installation)).toBeRejectedWithError(
       /did not register/,
+    );
+  });
+
+  it('fails when the entry bundle does not register the declared Widget Settings Element', async () => {
+    let contentElementRegistered = false;
+    const loader: WidgetEntryBundleLoader = {
+      load: jasmine.createSpy('load').and.callFake(async () => {
+        contentElementRegistered = true;
+      }),
+    };
+    configure(loader, {
+      isRegistered: (tag) =>
+        tag === installation.elementTag && contentElementRegistered,
+    });
+    const elementLoader = TestBed.inject(WidgetElementLoaderService);
+
+    await expectAsync(elementLoader.load(installation)).toBeRejectedWithError(
+      new RegExp(installation.settingsElementTag),
     );
   });
 

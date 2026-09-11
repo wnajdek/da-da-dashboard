@@ -19,12 +19,13 @@ const TRUSTED_ORIGIN = 'https://widgets.example.test';
 const MANIFEST_URL = `${TRUSTED_ORIGIN}/weather/manifest.json`;
 const WEATHER_INSTALLATION: WidgetInstallation = {
   manifestUrl: MANIFEST_URL,
-  manifestVersion: 1,
+  manifestVersion: 2,
   type: 'weather',
   displayName: 'Weather',
   description: 'Current conditions',
   version: '1.0.0',
   elementTag: 'weather-widget',
+  settingsElementTag: 'weather-widget-settings',
   entryBundleUrl: `${TRUSTED_ORIGIN}/weather/entry.js`,
   defaultConfiguration: { location: 'Warsaw', units: 'metric' },
   preferredLayout: { w: 4, h: 3 },

@@ -17,11 +17,12 @@ import { TRUSTED_MANIFEST_ORIGINS } from './widget-trust-policy';
 describe('WidgetInstallationService', () => {
   const installation: WidgetInstallation = {
     manifestUrl: 'https://widgets.example.test/weather/manifest.json',
-    manifestVersion: 1,
+    manifestVersion: 2,
     type: 'weather',
     displayName: 'Weather',
     version: '1.0.0',
     elementTag: 'installation-weather-widget',
+    settingsElementTag: 'installation-weather-widget-settings',
     entryBundleUrl: 'https://widgets.example.test/weather/entry.js',
     defaultConfiguration: { location: 'Warsaw', units: 'metric' },
     preferredLayout: { w: 4, h: 3 },
@@ -30,11 +31,12 @@ describe('WidgetInstallationService', () => {
   it('installs a trusted manifest and returns caller-ready feedback', async () => {
     const source: WidgetManifestSource = {
       load: jasmine.createSpy('load').and.resolveTo({
-        manifestVersion: 1,
+        manifestVersion: 2,
         type: 'weather',
         displayName: 'Weather',
         version: '1.0.0',
         elementTag: 'installation-weather-widget',
+        settingsElementTag: 'installation-weather-widget-settings',
         entryBundleUrl: './entry.js',
         defaultConfiguration: { location: 'Warsaw', units: 'metric' },
         preferredLayout: { w: 4, h: 3 },
@@ -43,7 +45,9 @@ describe('WidgetInstallationService', () => {
     configure(source);
     const installations = TestBed.inject(WidgetInstallationService);
 
-    const result = await installations.installManifest(installation.manifestUrl);
+    const result = await installations.installManifest(
+      installation.manifestUrl,
+    );
 
     expect(result).toEqual({
       status: 'installed',
@@ -80,7 +84,10 @@ function configure(
     providers: [
       provideZonelessChangeDetection(),
       { provide: DASHBOARD_STORAGE, useValue: storage },
-      { provide: TRUSTED_MANIFEST_ORIGINS, useValue: ['https://widgets.example.test'] },
+      {
+        provide: TRUSTED_MANIFEST_ORIGINS,
+        useValue: ['https://widgets.example.test'],
+      },
       { provide: WIDGET_MANIFEST_SOURCE, useValue: source },
       provideWidgetInstallationPersistence(),
     ],

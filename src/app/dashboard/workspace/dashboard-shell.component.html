@@ -46,8 +46,53 @@
       [dashboard]="dashboard"
       (layoutCommitted)="store.commitGridLayoutChange($event)"
       (widgetConfigurationChanged)="store.updateWidgetConfiguration($event)"
+      (widgetEditRequested)="openWidgetSettings($event)"
+      (widgetDuplicated)="store.duplicateWidget($event)"
       (widgetRemoved)="store.removeWidget($event)"
     />
+
+    @if (settingsWidget(); as widget) {
+      @if (settingsInstallation(); as installation) {
+        <div
+          class="widget-settings-backdrop"
+          data-testid="widget-settings-backdrop"
+          (click)="closeWidgetSettings()"
+        ></div>
+        <aside
+          class="widget-settings-drawer"
+          data-testid="widget-settings-drawer"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="widget-settings-title"
+          cdkTrapFocus
+          cdkTrapFocusAutoCapture
+        >
+          <header class="widget-settings-drawer__header">
+            <h2 id="widget-settings-title">
+              Configure {{ installation.displayName }}
+            </h2>
+            <button
+              type="button"
+              class="widget-settings-drawer__close"
+              data-testid="close-widget-settings"
+              aria-label="Close settings"
+              (click)="closeWidgetSettings()"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          </header>
+          <app-widget-element
+            class="widget-settings-drawer__content"
+            [installation]="installation"
+            [elementTag]="installation.settingsElementTag"
+            [widgetId]="widget.id"
+            [configuration]="widget.configuration"
+            (changed)="store.updateWidgetConfiguration($event)"
+            (removed)="store.removeWidget(widget.id)"
+          />
+        </aside>
+      }
+    }
 
     @if (dashboard.widgets.length === 0) {
       <button

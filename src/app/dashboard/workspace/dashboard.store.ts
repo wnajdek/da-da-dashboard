@@ -21,6 +21,7 @@ import type {
 } from './dashboard.models';
 import { DashboardPersistenceService } from './dashboard-persistence.service';
 import { createSeedDashboard } from './dashboard.seed';
+import { decodeJsonObject } from './json-value';
 
 const WIDGET_REMOVAL_UNDO_DURATION_MS = 5_000;
 const PERSISTENCE_FAILURE_MESSAGE =
@@ -100,6 +101,48 @@ export class DashboardStore {
         y: this.nextWidgetY(dashboard),
         w: decodedCreation.preferredLayout.w,
         h: decodedCreation.preferredLayout.h,
+      },
+    };
+    const updatedDashboard: Dashboard = {
+      ...dashboard,
+      widgets: [...dashboard.widgets, widget],
+    };
+
+    return this.persistDashboard(updatedDashboard);
+  }
+
+  duplicateWidget(id: string): DashboardCommandResult {
+    const dashboard = this.dashboardState();
+
+    if (decodeWidgetInstanceId(id) === null) {
+      return { status: 'invalid-input' };
+    }
+
+    if (dashboard === null) {
+      return { status: 'missing-target' };
+    }
+
+    const source = dashboard.widgets.find((widget) => widget.id === id);
+
+    if (source === undefined) {
+      return { status: 'missing-target' };
+    }
+
+    const configuration = decodeJsonObject(source.configuration);
+
+    if (configuration === null) {
+      return { status: 'invalid-input' };
+    }
+
+    const widget: WidgetInstance = {
+      id: this.createWidgetInstanceId(),
+      type: source.type,
+      configuration,
+      layout: {
+        x: 0,
+        y: this.nextWidgetY(dashboard),
+        w: source.layout.w,
+        h: source.layout.h,
       },
     };
     const updatedDashboard: Dashboard = {

@@ -7,11 +7,12 @@ import { WidgetElementComponent } from './widget-element.component';
 
 const INSTALLATION: WidgetInstallation = {
   manifestUrl: 'https://widgets.example.test/host/manifest.json',
-  manifestVersion: 1,
+  manifestVersion: 2,
   type: 'host-widget',
   displayName: 'Host Widget',
   version: '1.0.0',
   elementTag: 'host-lifecycle-widget',
+  settingsElementTag: 'host-lifecycle-widget-settings',
   entryBundleUrl: 'https://widgets.example.test/host/entry.js',
   defaultConfiguration: { location: 'Warsaw' },
   preferredLayout: { w: 4, h: 3 },
@@ -101,10 +102,15 @@ describe('WidgetElementComponent', () => {
     expect(JSON.stringify(element.assignments)).toBe('[{"location":"Warsaw"}]');
   });
 
-  it('contains a configuration assignment failure as an unavailable Widget', async () => {
+  it('contains a configuration update failure as an unavailable Widget', async () => {
     const fixture = await createFixture(THROWING_INSTALLATION);
+    const unavailable = jasmine.createSpy('unavailable');
+    fixture.componentInstance.unavailable.subscribe(unavailable);
 
     await renderMountedElement(fixture);
+    fixture.componentRef.setInput('configuration', { location: 'Kraków' });
+    fixture.detectChanges();
+    await fixture.whenStable();
 
     expect(
       fixture.nativeElement.querySelector('[data-testid="unavailable-widget"]'),
@@ -112,6 +118,7 @@ describe('WidgetElementComponent', () => {
     expect(
       fixture.nativeElement.querySelector(THROWING_INSTALLATION.elementTag),
     ).toBeNull();
+    expect(unavailable).toHaveBeenCalledTimes(1);
   });
 
   it('keeps a superseding Widget Element mounted and cleans up the previous listener', async () => {
@@ -230,8 +237,14 @@ class LifecycleWidgetElement extends HTMLElement {
 }
 
 class ThrowingConfigurationWidgetElement extends HTMLElement {
+  private hasConfiguration = false;
+
   set configuration(_value: WidgetConfiguration) {
-    throw new Error('configuration rejected');
+    if (this.hasConfiguration) {
+      throw new Error('configuration rejected');
+    }
+
+    this.hasConfiguration = true;
   }
 }
 

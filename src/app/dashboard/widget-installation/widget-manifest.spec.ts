@@ -14,6 +14,7 @@ describe('validateWidgetManifest', () => {
         description: '  Current conditions  ',
         version: ' 1.0.0 ',
         elementTag: 'trusted-weather-widget',
+        settingsElementTag: 'trusted-weather-widget-settings',
         entryBundleUrl: '../entry.js#ignored',
         defaultConfiguration,
         preferredLayout: { w: 4, h: 3 },
@@ -27,12 +28,15 @@ describe('validateWidgetManifest', () => {
       return;
     }
 
-    expect(result.manifest.manifestVersion).toBe(1);
+    expect(result.manifest.manifestVersion).toBe(2);
     expect(result.manifest.type).toBe('weather');
     expect(result.manifest.displayName).toBe('Weather');
     expect(result.manifest.description).toBe('Current conditions');
     expect(result.manifest.version).toBe('1.0.0');
     expect(result.manifest.elementTag).toBe('trusted-weather-widget');
+    expect(result.manifest.settingsElementTag).toBe(
+      'trusted-weather-widget-settings',
+    );
     expect(result.manifest.entryBundleUrl).toBe(
       'https://widgets.example.test/entry.js',
     );
@@ -69,13 +73,32 @@ describe('validateWidgetManifest', () => {
     expect(
       validateWidgetManifest(
         {
-          manifestVersion: 1,
+          manifestVersion: 2,
+          type: 'weather',
+          displayName: 'Weather',
+          version: '1.0.0',
+          elementTag: 'weather-widget',
+          settingsElementTag: 'weather-widget-settings',
+          entryBundleUrl: './entry.js',
+          defaultConfiguration: { location: new Date() },
+          preferredLayout: { w: 4, h: 3 },
+        },
+        'https://widgets.example.test/manifest.json',
+      ),
+    ).toEqual({ status: 'invalid', reason: 'invalid' });
+  });
+
+  it('requires the declared Widget Settings Element tag', () => {
+    expect(
+      validateWidgetManifest(
+        {
+          manifestVersion: 2,
           type: 'weather',
           displayName: 'Weather',
           version: '1.0.0',
           elementTag: 'weather-widget',
           entryBundleUrl: './entry.js',
-          defaultConfiguration: { location: new Date() },
+          defaultConfiguration: {},
           preferredLayout: { w: 4, h: 3 },
         },
         'https://widgets.example.test/manifest.json',
@@ -87,11 +110,12 @@ describe('validateWidgetManifest', () => {
     expect(
       validateWidgetManifest(
         {
-          manifestVersion: 1,
+          manifestVersion: 2,
           type: 'Weather Widget',
           displayName: 'Weather',
           version: '1.0.0',
           elementTag: 'weather-widget',
+          settingsElementTag: 'weather-widget-settings',
           entryBundleUrl: './entry.js',
           defaultConfiguration: {},
           preferredLayout: { w: 4, h: 3 },
@@ -105,11 +129,12 @@ describe('validateWidgetManifest', () => {
     expect(
       validateWidgetManifest(
         {
-          manifestVersion: 1,
+          manifestVersion: 2,
           type: 'weather',
           displayName: 'Weather',
           version: '1.0.0',
           elementTag: 'trusted-weather-widget',
+          settingsElementTag: 'trusted-weather-widget-settings',
           entryBundleUrl: 'https://cdn.example.test/entry.js',
           defaultConfiguration: {},
           preferredLayout: { w: 4, h: 3 },
