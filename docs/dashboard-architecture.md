@@ -66,15 +66,16 @@ The manifest at that URL could contain:
 
 ```json
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
   "type": "weather",
   "displayName": "Weather",
   "description": "Current conditions",
   "version": "1.0.0",
   "elementTag": "weather-widget",
+  "settingsElementTag": "weather-widget-settings",
   "entryBundleUrl": "./weather-widget.js",
   "defaultConfiguration": {
-    "city": "Warsaw",
+    "location": "Warsaw",
     "units": "metric"
   },
   "preferredLayout": {
@@ -84,9 +85,9 @@ The manifest at that URL could contain:
 }
 ```
 
-The manifest supplies metadata, a Custom Element tag, an entry bundle URL,
-default configuration, and a preferred size. It does not contain a Dashboard
-instance ID or a user's placement.
+The manifest supplies metadata, content and settings Custom Element tags, an
+entry bundle URL, default configuration, and a preferred size. It does not
+contain a Dashboard instance ID or a user's placement.
 
 ### Widget Installation
 
@@ -205,15 +206,16 @@ Stored shape:
   "installations": [
     {
       "manifestUrl": "https://widgets.example.test/weather/manifest.json",
-      "manifestVersion": 1,
+      "manifestVersion": 2,
       "type": "weather",
       "displayName": "Weather",
       "description": "Current conditions",
       "version": "1.0.0",
       "elementTag": "weather-widget",
+      "settingsElementTag": "weather-widget-settings",
       "entryBundleUrl": "https://widgets.example.test/weather/weather-widget.js",
       "defaultConfiguration": {
-        "city": "Warsaw",
+        "location": "Warsaw",
         "units": "metric"
       },
       "preferredLayout": {
@@ -400,13 +402,14 @@ The Weather Widget is the reference separately built application. Its source is
 kept under `projects/weather-widget`, but it is not imported as an Angular
 component by the Dashboard at runtime.
 
-| File                                                                                                                    | Responsibility                                                                     |
-| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| [`projects/weather-widget/src/main.ts`](../projects/weather-widget/src/main.ts)                                         | Creates the Widget application and registers `trusted-weather-widget`              |
-| [`projects/weather-widget/src/weather-widget-element.ts`](../projects/weather-widget/src/weather-widget-element.ts)     | Implements the browser Custom Element boundary around the Angular Widget component |
-| [`projects/weather-widget/src/weather-widget.component.ts`](../projects/weather-widget/src/weather-widget.component.ts) | Owns Weather settings, validation, states, and presentation                        |
-| [`projects/weather-widget/src/weather-data.service.ts`](../projects/weather-widget/src/weather-data.service.ts)         | Fetches and validates geocoding and current-weather responses                      |
-| [`projects/weather-widget/public/widget-manifest.json`](../projects/weather-widget/public/widget-manifest.json)         | Publishes the installable Widget metadata and bundle entry point                   |
+| File                                                                                                                                      | Responsibility                                                                    |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [`projects/weather-widget/src/main.ts`](../projects/weather-widget/src/main.ts)                                                           | Creates the Widget application and registers the content and settings Elements    |
+| [`projects/weather-widget/src/weather-widget-element.ts`](../projects/weather-widget/src/weather-widget-element.ts)                       | Implements the browser Custom Element boundary around an Angular Widget component |
+| [`projects/weather-widget/src/weather-widget.component.ts`](../projects/weather-widget/src/weather-widget.component.ts)                   | Owns weather data fetching, validation states, and presentation                   |
+| [`projects/weather-widget/src/weather-widget-settings.component.ts`](../projects/weather-widget/src/weather-widget-settings.component.ts) | Owns Weather settings fields, validation, saving, and feedback                    |
+| [`projects/weather-widget/src/weather-data.service.ts`](../projects/weather-widget/src/weather-data.service.ts)                           | Fetches and validates geocoding and current-weather responses                     |
+| [`projects/weather-widget/public/widget-manifest.json`](../projects/weather-widget/public/widget-manifest.json)                           | Publishes the installable Widget metadata and bundle entry point                  |
 
 ## Current implementation status
 
@@ -417,10 +420,11 @@ persist opaque configuration and portable layout, remove and undo instance
 removal, and contain an unavailable Widget without taking down the rest of the
 Dashboard.
 
-The Weather Widget is a separate Angular application. It owns its Open-Meteo
-requests, settings form, validation, loading state, success state, and error
-state. The Dashboard does not import its component class into the host
-application or provide a weather data gateway.
+The Weather Widget is a separate Angular application. Its content Element owns
+Open-Meteo requests, validation, loading state, success state, and error state;
+its Settings Element owns the form, validation, saving, and feedback. The
+Dashboard does not import either component class into the host application or
+provide a weather data gateway.
 
 The older ADRs describing a static built-in Angular Widget Registry are
 transitional history. ADR-0009 and the later ADRs define the current external
@@ -451,9 +455,11 @@ Widget Author                 Dashboard Operator              Dashboard User
                                     │                               │
                                     │                   load bundle on render
                                     │                               │
-                                    │              <trusted-weather-widget>
+                                    │       <sample-weather-widget>
                                     │                               │
-                                    │                 save settings in Widget
+                                    │    <sample-weather-widget-settings>
+                                    │                               │
+                                    │                  save settings in drawer
                                     │                               │
                                     │              configuration-changed event
                                     │                               │
@@ -478,15 +484,17 @@ Widget Author                 Dashboard Operator              Dashboard User
    Its initial `x` position is `0`; its `y` position is below the current
    Dashboard content. Placement is still a Dashboard decision.
 6. When the card renders, the runtime module loads `main.js` once and verifies
-   that the bundle registered `trusted-weather-widget`. The host creates the
-   element by tag; it never imports `WeatherWidgetComponent`.
+   that the bundle registered both `sample-weather-widget` and
+   `sample-weather-widget-settings`. The host creates each element by tag; it
+   never imports either Weather component.
 7. The host assigns the saved configuration. The Weather Widget validates the
    location and units, geocodes the location, requests current conditions from
    Open-Meteo, and renders loading, success, validation, or error feedback.
-8. When the user saves a valid location, the Widget emits one bubbling
-   `configuration-changed` event containing the complete replacement object.
-   The Dashboard validates only JSON safety, persists it for that instance, and
-   assigns the persisted value back to the element.
+8. The Dashboard mounts the Settings Element in its settings drawer. When the
+   user saves a valid location, it emits one bubbling `configuration-changed`
+   event containing the complete replacement object. The Dashboard validates
+   only JSON safety, persists it for that instance, and assigns the persisted
+   value back to both elements.
 9. On a later reload, the two stores are reconstructed independently. The
    installation tells the runtime how to load the element, while the instance
    snapshot supplies its saved configuration and layout. No executable bundle
@@ -538,7 +546,7 @@ and [`weather-data.service.ts`](../projects/weather-widget/src/weather-data.serv
 The Dashboard must not grow a Weather form, a Weather API client, or a
 Weather-specific configuration type.
 
-### 3. Expose one browser Custom Element
+### 3. Expose browser Custom Elements
 
 Wrap the Angular component in a Custom Element factory. The factory is the
 runtime boundary; it is not an Angular component registry. A minimal element
@@ -546,14 +554,14 @@ implementation has the following shape:
 
 ```ts
 class ExampleWidgetElement extends HTMLElement {
-  #configuration: unknown;
+  private configurationValue: unknown;
 
   get configuration(): unknown {
-    return this.#configuration;
+    return this.configurationValue;
   }
 
   set configuration(value: unknown) {
-    this.#configuration = value;
+    this.configurationValue = value;
     // If the Angular component is mounted, update its input in place.
   }
 
@@ -573,7 +581,8 @@ It uses `createComponent` with the Widget application's own
 `ApplicationRef`, attaches the view when connected, and forwards later
 configuration assignments to the component input.
 
-The element must implement the version-one contract:
+Both elements must implement the configuration-property contract. Only the
+Settings Element dispatches configuration changes:
 
 ```ts
 interface WidgetElement extends HTMLElement {
@@ -596,13 +605,13 @@ the host adapter can observe it at the element boundary. Do not add host
 capabilities such as a data gateway, resize API, Dashboard store reference, or
 generic event bus without a new architectural decision.
 
-### 4. Register the element from the Widget entrypoint
+### 4. Register both elements from the Widget entrypoint
 
-The entrypoint creates the Widget application's injector and registers exactly
-the tag declared by the manifest:
+The entrypoint creates the Widget application's injector and registers both
+tags declared by the manifest:
 
 ```ts
-if (customElements.get("example-widget")) {
+if (customElements.get("example-widget") && customElements.get("example-widget-settings")) {
   return;
 }
 
@@ -611,6 +620,7 @@ const application = createApplication({
 });
 
 customElements.define("example-widget", createExampleWidgetElement(application));
+customElements.define("example-widget-settings", createExampleWidgetSettingsElement(application));
 ```
 
 Custom Element names must be lowercase, contain a hyphen, and be globally
@@ -625,12 +635,13 @@ manifest follows this shape:
 
 ```json
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
   "type": "example-widget",
   "displayName": "Example Widget",
   "description": "A concise description shown before adding the Widget",
   "version": "1.0.0",
   "elementTag": "example-widget",
+  "settingsElementTag": "example-widget-settings",
   "entryBundleUrl": "./main.js",
   "defaultConfiguration": {
     "someSetting": true
@@ -645,8 +656,8 @@ manifest follows this shape:
 The `type` identifies a Widget Type; it is not an instance ID. The manifest
 must not contain a user's layout, ordering, credentials, or Dashboard
 instance configuration. The Dashboard validates the type, display metadata,
-version, Custom Element tag, same-origin bundle URL, JSON-safe defaults, and
-preferred size before saving the installation.
+version, distinct Custom Element tags, same-origin bundle URL, JSON-safe
+defaults, and preferred size before saving the installation.
 
 ### 6. Build and publish it
 

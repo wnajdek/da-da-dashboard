@@ -1,24 +1,16 @@
-import {
-  Component,
-  ElementRef,
-  effect,
-  inject,
-  input,
-  signal,
-} from '@angular/core';
+import { Component, effect, inject, input, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { WEATHER_DATA_SOURCE } from './weather-data.service';
 import type {
   WeatherConditions,
   WeatherConfiguration,
-  WeatherUnits,
 } from './weather-widget.models';
-import { isRecord } from './weather-guards';
-
-const DEFAULT_CONFIGURATION: WeatherConfiguration = {
-  location: 'Warsaw',
-  units: 'metric',
-};
+import {
+  areWeatherConfigurationsEqual,
+  DEFAULT_WEATHER_CONFIGURATION,
+  readWeatherConfiguration,
+  WeatherConfigurationReadResult,
+} from './weather-configuration';
 
 @Component({
   selector: 'weather-widget-view',
@@ -29,29 +21,6 @@ const DEFAULT_CONFIGURATION: WeatherConfiguration = {
         <p class="eyebrow">Weather</p>
         <h1>Local conditions</h1>
       </header>
-
-      <form (submit)="saveSettings($event)" novalidate>
-        <label>
-          Location
-          <input
-            type="text"
-            [value]="draftLocation()"
-            (input)="updateLocation($event)"
-            autocomplete="address-level2"
-          />
-        </label>
-        <label>
-          Units
-          <select [value]="draftUnits()" (change)="updateUnits($event)">
-            <option value="metric">Celsius</option>
-            <option value="imperial">Fahrenheit</option>
-          </select>
-        </label>
-        @if (validationMessage(); as message) {
-          <p class="validation" role="alert">{{ message }}</p>
-        }
-        <button type="submit">Save settings</button>
-      </form>
 
       <section class="conditions" aria-live="polite">
         @if (weatherState() === 'loading') {
@@ -124,48 +93,6 @@ const DEFAULT_CONFIGURATION: WeatherConfiguration = {
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    form {
-      display: grid;
-      grid-template-columns: 1fr 8rem auto;
-      align-items: end;
-      gap: 0.6rem;
-    }
-    label {
-      display: grid;
-      gap: 0.25rem;
-      color: #526079;
-      font-size: 0.8rem;
-    }
-    input,
-    select,
-    button {
-      box-sizing: border-box;
-      min-height: 2.25rem;
-      border: 1px solid #9aa6ba;
-      border-radius: 0.375rem;
-      font: inherit;
-    }
-    input,
-    select {
-      width: 100%;
-      padding: 0.35rem 0.5rem;
-      color: #172033;
-      background: #fff;
-    }
-    button {
-      padding: 0.35rem 0.7rem;
-      color: #fff;
-      background: #075b67;
-      border-color: #075b67;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    .validation {
-      grid-column: 1 / -1;
-      margin: 0;
-      color: #b42318;
-      font-size: 0.8rem;
-    }
     .conditions {
       margin-top: 1.3rem;
     }
@@ -173,8 +100,7 @@ const DEFAULT_CONFIGURATION: WeatherConfiguration = {
     .details {
       color: #526079;
     }
-    .status--error,
-    .validation {
+    .status--error {
       color: #b42318;
     }
     .status--validation {
@@ -189,36 +115,23 @@ const DEFAULT_CONFIGURATION: WeatherConfiguration = {
     .details {
       margin-bottom: 0.2rem;
     }
-    @media (max-width: 600px) {
-      form {
-        grid-template-columns: 1fr 1fr;
-      }
-      button {
-        grid-column: 1 / -1;
-      }
-    }
   `,
 })
 export class WeatherWidgetComponent {
-  readonly configuration = input<unknown>(DEFAULT_CONFIGURATION);
+  readonly configuration = input<unknown>(DEFAULT_WEATHER_CONFIGURATION);
 
-  protected readonly draftLocation = signal(DEFAULT_CONFIGURATION.location);
-  protected readonly draftUnits = signal<WeatherUnits>(
-    DEFAULT_CONFIGURATION.units,
-  );
   protected readonly validationMessage = signal<string | null>(null);
   protected readonly weatherState = signal<
     'loading' | 'ready' | 'invalid' | 'error'
   >('loading');
   protected readonly conditions = signal<WeatherConditions | null>(null);
   private readonly weatherData = inject(WEATHER_DATA_SOURCE);
-  private readonly hostElement = inject(ElementRef<HTMLElement>);
   private requestRevision = 0;
   private lastRequestedConfiguration: WeatherConfiguration | null = null;
 
   constructor() {
     effect(() => {
-      const result = readConfiguration(this.configuration());
+      const result = readWeatherConfiguration(this.configuration());
 
       if (result.status === 'invalid') {
         this.showInvalidConfiguration(result);
@@ -229,62 +142,18 @@ export class WeatherWidgetComponent {
     });
   }
 
-  protected updateLocation(event: Event): void {
-    const input = event.target;
-
-    if (input instanceof HTMLInputElement) {
-      this.draftLocation.set(input.value);
-    }
-  }
-
-  protected updateUnits(event: Event): void {
-    const select = event.target;
-
-    if (select instanceof HTMLSelectElement && isUnits(select.value)) {
-      this.draftUnits.set(select.value);
-    }
-  }
-
-  protected saveSettings(event: SubmitEvent): void {
-    event.preventDefault();
-    const location = this.draftLocation().trim();
-    const units = this.draftUnits();
-
-    if (location.length === 0) {
-      this.showInvalidConfiguration({
-        status: 'invalid',
-        location,
-        units,
-        message: 'Enter a location.',
-      });
-      return;
-    }
-
-    const configuration: WeatherConfiguration = { location, units };
-    this.applyConfiguration(configuration, true);
-    this.hostElement.nativeElement.dispatchEvent(
-      new CustomEvent('configuration-changed', {
-        bubbles: true,
-        detail: configuration,
-      }),
-    );
-  }
-
-  private applyConfiguration(
-    configuration: WeatherConfiguration,
-    force = false,
-  ): void {
+  private applyConfiguration(configuration: WeatherConfiguration): void {
     if (
-      !force &&
       this.lastRequestedConfiguration !== null &&
-      areConfigurationsEqual(configuration, this.lastRequestedConfiguration)
+      areWeatherConfigurationsEqual(
+        configuration,
+        this.lastRequestedConfiguration,
+      )
     ) {
       return;
     }
 
     this.lastRequestedConfiguration = configuration;
-    this.draftLocation.set(configuration.location);
-    this.draftUnits.set(configuration.units);
     this.validationMessage.set(null);
     this.conditions.set(null);
     this.weatherState.set('loading');
@@ -319,72 +188,13 @@ export class WeatherWidgetComponent {
   private showInvalidConfiguration(result: InvalidConfiguration): void {
     this.requestRevision += 1;
     this.lastRequestedConfiguration = null;
-    this.draftLocation.set(result.location);
-    this.draftUnits.set(result.units);
     this.validationMessage.set(result.message);
     this.conditions.set(null);
     this.weatherState.set('invalid');
   }
 }
 
-type ConfigurationReadResult =
-  | { readonly status: 'valid'; readonly configuration: WeatherConfiguration }
-  | InvalidConfiguration;
-
-interface InvalidConfiguration {
-  readonly status: 'invalid';
-  readonly location: string;
-  readonly units: WeatherUnits;
-  readonly message: string;
-}
-
-function readConfiguration(value: unknown): ConfigurationReadResult {
-  if (!isRecord(value)) {
-    return {
-      status: 'invalid',
-      location: DEFAULT_CONFIGURATION.location,
-      units: DEFAULT_CONFIGURATION.units,
-      message: 'Enter a valid location and choose a unit.',
-    };
-  }
-
-  const location =
-    typeof value['location'] === 'string' ? value['location'].trim() : '';
-  const units = isUnits(value['units'])
-    ? value['units']
-    : DEFAULT_CONFIGURATION.units;
-
-  if (location.length === 0) {
-    return {
-      status: 'invalid',
-      location,
-      units,
-      message: 'Enter a location.',
-    };
-  }
-
-  if (!isUnits(value['units'])) {
-    return {
-      status: 'invalid',
-      location,
-      units,
-      message: 'Choose Celsius or Fahrenheit.',
-    };
-  }
-
-  return {
-    status: 'valid',
-    configuration: { location, units },
-  };
-}
-
-function isUnits(value: unknown): value is WeatherUnits {
-  return value === 'metric' || value === 'imperial';
-}
-
-function areConfigurationsEqual(
-  left: WeatherConfiguration,
-  right: WeatherConfiguration,
-): boolean {
-  return left.location === right.location && left.units === right.units;
-}
+type InvalidConfiguration = Extract<
+  WeatherConfigurationReadResult,
+  { readonly status: 'invalid' }
+>;

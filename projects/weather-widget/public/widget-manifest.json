@@ -1,17 +1,18 @@
 {
-  "manifestVersion": 1,
+  "manifestVersion": 2,
   "type": "weather",
   "displayName": "Weather",
   "description": "Current conditions for a saved location",
   "version": "1.0.0",
-  "elementTag": "trusted-weather-widget",
+  "elementTag": "sample-weather-widget",
+  "settingsElementTag": "sample-weather-widget-settings",
   "entryBundleUrl": "./main.js",
   "defaultConfiguration": {
-    "location": "Warsaw",
+    "location": "Cracow",
     "units": "metric"
   },
   "preferredLayout": {
-    "w": 5,
-    "h": 4
+    "w": 4,
+    "h": 3
   }
 }

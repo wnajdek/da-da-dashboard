@@ -1,13 +1,16 @@
-import { ApplicationRef, createComponent } from '@angular/core';
-import { WeatherWidgetComponent } from './weather-widget.component';
+import {
+  ApplicationRef,
+  ComponentRef,
+  createComponent,
+  Type,
+} from '@angular/core';
 
 export function createWeatherWidgetElement(
   application: Promise<ApplicationRef>,
+  componentType: Type<unknown>,
 ): CustomElementConstructor {
   return class extends HTMLElement {
-    private component: ReturnType<
-      typeof createComponent<WeatherWidgetComponent>
-    > | null = null;
+    private component: ComponentRef<unknown> | null = null;
     private application: ApplicationRef | null = null;
     private attached = false;
     private connected = false;
@@ -52,7 +55,7 @@ export function createWeatherWidgetElement(
       }
 
       if (this.component === null) {
-        this.component = createComponent(WeatherWidgetComponent, {
+        this.component = createComponent(componentType, {
           environmentInjector: app.injector,
           hostElement: this,
         });
