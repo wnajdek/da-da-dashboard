@@ -53,6 +53,10 @@ button {
   line-height: 1;
 }
 
+.widget-drag-handle span {
+  pointer-events: none;
+}
+
 .widget-menu-trigger {
   font-size: 1.25rem;
   line-height: 1;
