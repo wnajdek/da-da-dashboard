@@ -4,6 +4,7 @@ import {
   ElementRef,
   Injector,
   afterNextRender,
+  afterRenderEffect,
   effect,
   inject,
   input,
@@ -95,7 +96,7 @@ export class WidgetElementComponent {
       this.updateMountedConfiguration(configuration);
     });
 
-    effect(() => {
+    afterRenderEffect(() => {
       this.elementHost();
 
       if (this.state() === 'ready' && this.attempt !== null) {
@@ -133,7 +134,6 @@ export class WidgetElementComponent {
       );
       this.assignConfiguration(attempt, this.configuration());
       this.state.set('ready');
-      this.attachRenderedElement(attempt);
     } catch {
       this.failAttempt(attempt);
     }

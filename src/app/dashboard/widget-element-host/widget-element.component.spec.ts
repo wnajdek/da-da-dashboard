@@ -74,6 +74,27 @@ describe('WidgetElementComponent', () => {
     ]);
   });
 
+  it('keeps an asynchronously loaded Widget Element mounted after the ready state renders', async () => {
+    let finishLoading: (() => void) | undefined;
+    const fixture = await createFixture(INSTALLATION, {
+      load: () =>
+        new Promise<void>((resolve) => {
+          finishLoading = resolve;
+        }),
+    });
+    await fixture.whenStable();
+
+    if (finishLoading === undefined) {
+      throw new Error('The Widget Element load did not begin.');
+    }
+
+    finishLoading();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(getWidgetElement(fixture)).not.toBeNull();
+  });
+
   it('ignores malformed and throwing configuration-change event details', async () => {
     const fixture = await createFixture(INSTALLATION);
     const changes: unknown[] = [];
