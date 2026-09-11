@@ -18,6 +18,22 @@ describe('weather widget entry bundle', () => {
       expect(element.configuration).toEqual(configuration);
     }
   });
+
+  it('rejects a tag collision instead of combining elements from different bundles', async () => {
+    const { registerWeatherWidget } = await import('./main');
+    const registry = {
+      get: (tag: string) =>
+        tag === 'sample-weather-widget'
+          ? class extends HTMLElement {}
+          : undefined,
+      define: () =>
+        fail('The entry bundle must not define a tag after a collision.'),
+    };
+
+    await expectAsync(registerWeatherWidget(registry)).toBeRejectedWithError(
+      'Weather widget element tags are already registered.',
+    );
+  });
 });
 
 async function waitForElementRegistration(tag: string): Promise<void> {

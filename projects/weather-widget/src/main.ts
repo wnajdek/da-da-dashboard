@@ -9,29 +9,31 @@ const SETTINGS_ELEMENT_TAG = 'sample-weather-widget-settings';
 
 void registerWeatherWidget();
 
-async function registerWeatherWidget(): Promise<void> {
+interface CustomElementRegistryPort {
+  get(name: string): CustomElementConstructor | undefined;
+  define(name: string, constructor: CustomElementConstructor): void;
+}
+
+export async function registerWeatherWidget(
+  registry: CustomElementRegistryPort = customElements,
+): Promise<void> {
   if (
-    customElements.get(CONTENT_ELEMENT_TAG) !== undefined &&
-    customElements.get(SETTINGS_ELEMENT_TAG) !== undefined
+    registry.get(CONTENT_ELEMENT_TAG) !== undefined ||
+    registry.get(SETTINGS_ELEMENT_TAG) !== undefined
   ) {
-    return;
+    throw new Error('Weather widget element tags are already registered.');
   }
 
   const application = createApplication({
     providers: [provideZonelessChangeDetection()],
   });
 
-  if (customElements.get(CONTENT_ELEMENT_TAG) === undefined) {
-    customElements.define(
-      CONTENT_ELEMENT_TAG,
-      createWeatherWidgetElement(application, WeatherWidgetComponent),
-    );
-  }
-
-  if (customElements.get(SETTINGS_ELEMENT_TAG) === undefined) {
-    customElements.define(
-      SETTINGS_ELEMENT_TAG,
-      createWeatherWidgetElement(application, WeatherWidgetSettingsComponent),
-    );
-  }
+  registry.define(
+    CONTENT_ELEMENT_TAG,
+    createWeatherWidgetElement(application, WeatherWidgetComponent),
+  );
+  registry.define(
+    SETTINGS_ELEMENT_TAG,
+    createWeatherWidgetElement(application, WeatherWidgetSettingsComponent),
+  );
 }
