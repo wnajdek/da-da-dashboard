@@ -43,3 +43,10 @@ export type WidgetInstallationRemovalResult =
       readonly message: string;
     }
   | WidgetInstallationRejection;
+
+export type WidgetInstallationsResetResult =
+  | {
+      readonly status: 'reset';
+      readonly message: string;
+    }
+  | WidgetInstallationRejection;

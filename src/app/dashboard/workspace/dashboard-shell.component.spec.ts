@@ -1,6 +1,8 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { DashboardShellComponent } from './dashboard-shell.component';
+import { DashboardStore } from './dashboard.store';
 import {
   DASHBOARD_STORAGE,
   DASHBOARD_STORAGE_KEY,
@@ -19,6 +21,7 @@ import { TRUSTED_MANIFEST_ORIGINS } from '../widget-installation/widget-trust-po
 import { BROWSER_VIEWPORT } from '../grid-layout/browser-viewport';
 import type { Dashboard, WidgetConfiguration } from './dashboard.models';
 import { MemoryStorage } from '../../testing/memory-storage';
+import { WidgetInstallationService } from '../widget-installation/widget-installation.service';
 
 const TRUSTED_ORIGIN = 'https://widgets.example.test';
 const MANIFEST_URL = `${TRUSTED_ORIGIN}/continuity/manifest.json`;
@@ -101,10 +104,6 @@ describe('DashboardShellComponent', () => {
 
     await installWidget(fixture, MANIFEST_URL);
     await render(fixture);
-    getHost(fixture)
-      .querySelector<HTMLButtonElement>('[data-testid="add-widget"]')
-      ?.click();
-    await render(fixture);
     openWidgetActionMenu(getHost(fixture));
     document
       .querySelector<HTMLButtonElement>('[data-testid="edit-widget-instance"]')
@@ -156,6 +155,7 @@ async function createShellFixture(
     imports: [DashboardShellComponent],
     providers: [
       provideZonelessChangeDetection(),
+      provideRouter([]),
       { provide: BROWSER_VIEWPORT, useValue: { width: signal(1_280) } },
       { provide: DASHBOARD_STORAGE, useValue: storage },
       { provide: TRUSTED_MANIFEST_ORIGINS, useValue: [TRUSTED_ORIGIN] },
@@ -173,30 +173,22 @@ async function createShellFixture(
 }
 
 async function installWidget(
-  fixture: ComponentFixture<DashboardShellComponent>,
+  _fixture: ComponentFixture<DashboardShellComponent>,
   manifestUrl: string,
 ): Promise<void> {
-  const host = getHost(fixture);
-  host
-    .querySelector<HTMLButtonElement>('[data-testid="open-widget-drawer"]')
-    ?.click();
-  await render(fixture);
-  const input = host.querySelector<HTMLInputElement>(
-    '[data-testid="manifest-url"]',
-  );
-  const form = host.querySelector<HTMLFormElement>(
-    '[data-testid="install-widget-form"]',
-  );
+  const result = await TestBed.inject(
+    WidgetInstallationService,
+  ).installManifest(manifestUrl);
 
-  if (input === null || form === null) {
-    throw new Error('The Widget Catalog installation controls are missing.');
+  if (result.status === 'rejected') {
+    throw new Error(result.message);
   }
 
-  input.value = manifestUrl;
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  form.dispatchEvent(
-    new SubmitEvent('submit', { bubbles: true, cancelable: true }),
-  );
+  TestBed.inject(DashboardStore).addWidget({
+    type: result.installation.type,
+    configuration: result.installation.defaultConfiguration,
+    preferredLayout: result.installation.preferredLayout,
+  });
 }
 
 function getHost(

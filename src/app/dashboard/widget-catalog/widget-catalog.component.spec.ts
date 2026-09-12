@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { DashboardStore } from '../workspace/dashboard.store';
 import { DASHBOARD_STORAGE } from '../workspace/dashboard-persistence.service';
 import { MemoryStorage } from '../../testing/memory-storage';
@@ -32,47 +33,20 @@ const WEATHER_INSTALLATION: WidgetInstallation = {
 };
 
 describe('WidgetCatalogComponent', () => {
-  it('announces installation persistence recovery separately from operation feedback', async () => {
-    const storage = new MemoryStorage();
-    storage.setItem('configurable-dashboard.widget-installations', '{');
-    const fixture = await createCatalogFixture(
-      { load: jasmine.createSpy('load') },
-      [],
-      storage,
-    );
-
-    const recovery = (
-      fixture.nativeElement as HTMLElement
-    ).querySelector<HTMLElement>(
-      '[data-testid="widget-installation-recovery"]',
-    );
-    expect(recovery?.getAttribute('role')).toBe('alert');
-    expect(recovery?.textContent).toContain(
-      'Saved Widget Installations could not be read.',
-    );
-  });
-
-  it('installs a trusted manifest and presents it in the drawer', async () => {
-    const source: WidgetManifestSource = {
-      load: jasmine.createSpy('load').and.resolveTo({
-        ...WEATHER_INSTALLATION,
-        entryBundleUrl: './entry.js',
-      }),
-    };
-    const fixture = await createCatalogFixture(source);
-
-    submitManifest(fixture, MANIFEST_URL);
-    await fixture.whenStable();
-    fixture.detectChanges();
-
+  it('links to Installed Widgets instead of installing in the drawer', async () => {
+    const fixture = await createCatalogFixture({
+      load: jasmine.createSpy('load'),
+    });
     const host = fixture.nativeElement as HTMLElement;
-    expect(source.load).toHaveBeenCalledOnceWith(MANIFEST_URL);
-    expect(host.textContent).toContain('Weather');
-    expect(host.textContent).toContain('Current conditions');
+    const link = host.querySelector<HTMLAnchorElement>(
+      '[data-testid="manage-installed-widgets"]',
+    );
+
+    expect(link?.textContent).toContain('Manage installed widgets');
+    expect(link?.getAttribute('href')).toBe('/widgets?returnTo=add-widget');
     expect(
-      host.querySelector('[data-testid="widget-installation-status"]')
-        ?.textContent,
-    ).toContain('Installed');
+      host.querySelector('[data-testid="install-widget-form"]'),
+    ).toBeNull();
   });
 
   it('adds a Widget Instance with the manifest defaults and preferred size', async () => {
@@ -135,6 +109,7 @@ async function createCatalogFixture(
     imports: [WidgetCatalogComponent],
     providers: [
       provideZonelessChangeDetection(),
+      provideRouter([]),
       { provide: DASHBOARD_STORAGE, useValue: storage },
       provideWidgetInstallationPersistence(),
       WidgetInstallationPersistenceService,

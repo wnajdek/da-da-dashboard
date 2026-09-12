@@ -7,6 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
+import { ActivatedRoute } from '@angular/router';
 import { BROWSER_VIEWPORT } from '../grid-layout/browser-viewport';
 import { DASHBOARD_GRID_CONFIG } from '../grid-layout/dashboard-grid.config';
 import type { WidgetInstance } from './dashboard.models';
@@ -38,6 +39,7 @@ export class DashboardShellComponent {
   );
 
   private readonly viewport = inject(BROWSER_VIEWPORT);
+  private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly installations = inject(WidgetInstallationService);
 
   protected readonly settingsWidget = computed(() => {
@@ -57,6 +59,10 @@ export class DashboardShellComponent {
   });
 
   constructor() {
+    if (this.route?.snapshot.queryParamMap.get('openWidgetDrawer') === 'true') {
+      this.openWidgetDrawer();
+    }
+
     effect(() => {
       if (this.isNarrowScreen()) {
         this.isWidgetDrawerOpen.set(false);

@@ -61,53 +61,19 @@
     </div>
 
     <footer class="widget-drawer__footer">
-      <form
-        class="install-widget"
-        data-testid="install-widget-form"
-        novalidate
-        (submit)="installManifest($event)"
+      <a
+        class="manage-installations"
+        data-testid="manage-installed-widgets"
+        [routerLink]="['/widgets']"
+        [queryParams]="{ returnTo: 'add-widget' }"
+        (click)="closed.emit()"
       >
-        <label for="manifest-url">Widget Manifest URL</label>
-        <div class="install-widget__action">
-          <input
-            id="manifest-url"
-            data-testid="manifest-url"
-            type="url"
-            autocomplete="url"
-            placeholder="https://widgets.example.test/manifest.json"
-            [value]="manifestUrl()"
-            (input)="updateManifestUrl($event)"
-          />
-          <button type="submit" [disabled]="installations.isInstalling()">
-            @if (installations.isInstalling()) {
-              Installing…
-            } @else {
-              Install
-            }
-          </button>
-        </div>
-      </form>
-
-      @if (recoveryMessage(); as recoveryMessage) {
-        <p
-          class="installation-feedback installation-feedback--error"
-          data-testid="widget-installation-recovery"
-          role="alert"
-        >
-          {{ recoveryMessage }}
-        </p>
-      }
-
-      @if (installationFeedback(); as feedback) {
-        <p
-          class="installation-feedback"
-          data-testid="widget-installation-status"
-          role="status"
-          [class.installation-feedback--error]="feedback.status === 'error'"
-        >
-          {{ feedback.message }}
-        </p>
-      }
+        <span class="manage-installations__icon" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </span>
+        <span>Manage installed widgets</span>
+        <span class="manage-installations__arrow" aria-hidden="true">›</span>
+      </a>
     </footer>
   </aside>
 }

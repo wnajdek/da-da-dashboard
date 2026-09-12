@@ -5,6 +5,7 @@ import {
   type WidgetInstallation,
   type WidgetInstallationRejection,
   type WidgetInstallationRemovalResult,
+  type WidgetInstallationsResetResult,
   type WidgetInstallationResult,
 } from './widget-installation.models';
 import { validateWidgetManifest } from './widget-manifest';
@@ -41,6 +42,10 @@ export class WidgetInstallationService {
   }
 
   async installManifest(input: string): Promise<WidgetInstallationResult> {
+    if (this.recoveryMessageState() !== null) {
+      return this.recoveryBlocked();
+    }
+
     if (this.isInstallingState()) {
       return this.reject(
         'Another Widget Manifest installation is already in progress.',
@@ -136,6 +141,10 @@ export class WidgetInstallationService {
   }
 
   removeInstallation(type: string): WidgetInstallationRemovalResult {
+    if (this.recoveryMessageState() !== null) {
+      return this.recoveryBlocked();
+    }
+
     const installation = this.installationFor(type);
 
     if (installation === undefined) {
@@ -156,12 +165,33 @@ export class WidgetInstallationService {
     return {
       status: 'removed',
       installation,
-      message: `Removed “${installation.displayName}”. Existing Widget Instances are now unavailable.`,
+      message: `Uninstalled “${installation.displayName}”.`,
+    };
+  }
+
+  resetInstallations(): WidgetInstallationsResetResult {
+    if (this.recoveryMessageState() === null) {
+      return this.reject('There are no damaged Widget Installations to reset.');
+    }
+
+    if (!this.installationPersistence.save([])) {
+      return this.reject('Installed Widgets could not be reset locally.');
+    }
+
+    this.installationsState.set([]);
+    this.recoveryMessageState.set(null);
+    return {
+      status: 'reset',
+      message: 'Installed Widgets were reset.',
     };
   }
 
   private reject(message: string): WidgetInstallationRejection {
     return { status: 'rejected', message };
+  }
+
+  private recoveryBlocked(): WidgetInstallationRejection {
+    return this.reject('Reset installed Widgets before making changes.');
   }
 }
 

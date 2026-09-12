@@ -32,8 +32,9 @@ Configuration.
 ## Widget Installation
 
 A user-approved record that makes a trusted Widget Manifest available to the
-Dashboard. Removing an installation does not remove its existing Widget
+Dashboard. Uninstalling it does not remove its existing Widget
 Instances; they become Unavailable Widgets.
+_Avoid_: deleting an installation
 
 ## Trusted Manifest Origin
 

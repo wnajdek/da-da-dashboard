@@ -74,6 +74,38 @@ describe('WidgetInstallationService', () => {
     });
     expect(installations.installations()).toEqual([installation]);
   });
+
+  it('blocks installation and uninstalling until damaged installation data is reset', async () => {
+    const storage = new MemoryStorage();
+    storage.setItem('configurable-dashboard.widget-installations', '{');
+    const source: WidgetManifestSource = {
+      load: jasmine.createSpy('load'),
+    };
+    configure(source, storage);
+    const installations = TestBed.inject(WidgetInstallationService);
+
+    expect(installations.recoveryMessage()).toBe(
+      'Saved Widget Installations could not be read.',
+    );
+    await expectAsync(
+      installations.installManifest(installation.manifestUrl),
+    ).toBeResolvedTo({
+      status: 'rejected',
+      message: 'Reset installed Widgets before making changes.',
+    });
+    expect(installations.removeInstallation(installation.type)).toEqual({
+      status: 'rejected',
+      message: 'Reset installed Widgets before making changes.',
+    });
+    expect(source.load).not.toHaveBeenCalled();
+
+    expect(installations.resetInstallations()).toEqual({
+      status: 'reset',
+      message: 'Installed Widgets were reset.',
+    });
+    expect(installations.recoveryMessage()).toBeNull();
+    expect(installations.installations()).toEqual([]);
+  });
 });
 
 function configure(

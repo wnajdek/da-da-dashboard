@@ -1,0 +1,310 @@
+<main class="widget-installations" aria-labelledby="installed-widgets-title">
+  <header class="widget-installations__header">
+    <a
+      class="widget-installations__back"
+      data-testid="back-to-dashboard"
+      [routerLink]="['/']"
+      [queryParams]="returnToWidgetDrawer ? { openWidgetDrawer: 'true' } : {}"
+      aria-label="Back to dashboard"
+    >
+      <span aria-hidden="true">←</span>
+    </a>
+    <div>
+      <h1 id="installed-widgets-title">Installed widgets</h1>
+      <p>
+        Manage your installed widgets. Install new widgets to extend your
+        dashboard.
+      </p>
+    </div>
+    <button
+      type="button"
+      class="install-new-widget"
+      data-testid="open-install-widget-form"
+      [disabled]="narrowScreen() || recoveryMessage() !== null"
+      (click)="openInstallationForm()"
+    >
+      <span aria-hidden="true">+</span>
+      Install new widget
+    </button>
+  </header>
+
+  @if (narrowScreen()) {
+    <p class="widget-installations__narrow-notice" role="status">
+      Manage widgets on a larger screen. Installation and uninstalling are
+      unavailable here.
+    </p>
+  }
+
+  @if (recoveryMessage(); as message) {
+    <section
+      class="installation-recovery"
+      data-testid="widget-installation-recovery"
+      role="alert"
+    >
+      <h2>Installed widgets need attention</h2>
+      <p>{{ message }}</p>
+      <p>
+        Resetting removes the damaged installation list. Existing Widget
+        Instances stay on the Dashboard as unavailable widgets.
+      </p>
+      <button
+        type="button"
+        [disabled]="narrowScreen()"
+        (click)="requestReset()"
+      >
+        Reset installed widgets
+      </button>
+    </section>
+  }
+
+  @if (isInstallationFormOpen()) {
+    <section class="install-widget-form" aria-labelledby="install-widget-title">
+      <h2 id="install-widget-title">Install a new widget</h2>
+      <p>Paste the URL of a trusted Widget Manifest.</p>
+      <form
+        data-testid="install-widget-form"
+        novalidate
+        (submit)="installManifest($event)"
+      >
+        <label for="manifest-url">Widget Manifest URL</label>
+        <div class="install-widget-form__action">
+          <input
+            id="manifest-url"
+            data-testid="manifest-url"
+            type="url"
+            autocomplete="url"
+            placeholder="https://widgets.example.test/manifest.json"
+            [value]="manifestUrl()"
+            (input)="updateManifestUrl($event)"
+          />
+          <button type="submit" [disabled]="isInstalling()">
+            {{ isInstalling() ? "Installing…" : "Install" }}
+          </button>
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="closeInstallationForm()"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </section>
+  }
+
+  @if (installationFeedback(); as feedback) {
+    <p
+      class="installation-feedback"
+      data-testid="widget-installation-status"
+      role="status"
+      [class.installation-feedback--error]="feedback.status === 'error'"
+    >
+      {{ feedback.message }}
+    </p>
+  }
+
+  <section class="widget-installations__list" aria-label="Installed widgets">
+    <header class="widget-installations__toolbar">
+      <label class="search-field" for="installed-widget-search">
+        <span class="visually-hidden">Search installed widgets</span>
+        <span class="search-field__icon" aria-hidden="true">⌕</span>
+        <input
+          id="installed-widget-search"
+          data-testid="installed-widget-search"
+          type="search"
+          placeholder="Search widgets..."
+          autocomplete="off"
+          [value]="searchQuery()"
+          (input)="updateSearchQuery($event)"
+        />
+      </label>
+
+      <label class="sort-field" for="installed-widget-sort">
+        <span class="visually-hidden">Sort installed widgets</span>
+        <select
+          id="installed-widget-sort"
+          data-testid="installed-widget-sort"
+          [value]="sort()"
+          (change)="updateSort($event)"
+        >
+          <option value="name-ascending">Name A–Z</option>
+          <option value="name-descending">Name Z–A</option>
+        </select>
+      </label>
+    </header>
+
+    @if (installations().length === 0) {
+      <div
+        class="widget-installations__empty"
+        data-testid="empty-installations"
+      >
+        <h2>No widgets installed yet</h2>
+        <p>
+          Install a widget manifest to make a Widget Type available to your
+          dashboard.
+        </p>
+        @if (!narrowScreen() && recoveryMessage() === null) {
+          <button type="button" (click)="openInstallationForm()">
+            Install your first widget
+          </button>
+        }
+      </div>
+    } @else if (filteredInstallations().length === 0) {
+      <div
+        class="widget-installations__empty"
+        data-testid="empty-search-results"
+      >
+        <h2>No installed widgets match your search</h2>
+        <button type="button" (click)="clearSearch()">Clear search</button>
+      </div>
+    } @else {
+      <div class="widget-installations__rows">
+        @for (
+          installation of filteredInstallations();
+          track installation.type
+        ) {
+          <article class="installed-widget" data-testid="installed-widget">
+            <span
+              class="installed-widget__icon"
+              [style.--widget-accent]="widgetAccent(installation.type)"
+              aria-hidden="true"
+            >
+              <span></span><span></span><span></span><span></span>
+            </span>
+
+            <div class="installed-widget__identity">
+              <h2>{{ installation.displayName }}</h2>
+              @if (installation.description) {
+                <p>{{ installation.description }}</p>
+              }
+              <dl>
+                <div>
+                  <dt>Widget type</dt>
+                  <dd>{{ installation.type }}</dd>
+                </div>
+                <div>
+                  <dt>Manifest source</dt>
+                  <dd
+                    data-testid="manifest-source"
+                    [title]="installation.manifestUrl"
+                    role="button"
+                    tabindex="0"
+                    (click)="copyManifestUrl(installation.manifestUrl)"
+                    (keydown.enter)="copyManifestUrl(installation.manifestUrl)"
+                    (keydown.space)="
+                      $event.preventDefault();
+                      copyManifestUrl(installation.manifestUrl)
+                    "
+                  >
+                    {{ manifestHostname(installation.manifestUrl) }}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            <dl class="installed-widget__metadata">
+              <div>
+                <dt>Version</dt>
+                <dd>{{ installation.version }}</dd>
+              </div>
+              <div>
+                <dt>Widget element</dt>
+                <dd>{{ installation.elementTag }}</dd>
+              </div>
+              <div>
+                <dt>Settings element</dt>
+                <dd>{{ installation.settingsElementTag }}</dd>
+              </div>
+            </dl>
+
+            <button
+              type="button"
+              class="installed-widget__menu-trigger"
+              data-testid="widget-installation-action-menu"
+              aria-label="Actions for {{ installation.displayName }}"
+              [disabled]="narrowScreen() || recoveryMessage() !== null"
+              [cdkMenuTriggerFor]="installationMenu"
+            >
+              <span aria-hidden="true">⋮</span>
+            </button>
+
+            <ng-template #installationMenu>
+              <div class="widget-installation-menu" cdkMenu>
+                <button
+                  type="button"
+                  cdkMenuItem
+                  class="widget-installation-menu__uninstall"
+                  data-testid="uninstall-widget-installation"
+                  (click)="requestUninstall(installation)"
+                >
+                  Uninstall
+                </button>
+              </div>
+            </ng-template>
+          </article>
+        }
+      </div>
+    }
+  </section>
+
+  @if (uninstallCandidate(); as installation) {
+    <div class="confirmation-backdrop"></div>
+    <section
+      class="confirmation-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="uninstall-title"
+    >
+      <h2 id="uninstall-title">Uninstall {{ installation.displayName }}?</h2>
+        @if (widgetInstanceCount(installation.type); as count) {
+        <p>
+          {{ count }}
+          {{ count === 1 ? "Widget Instance" : "Widget Instances" }} on your
+          Dashboard will become unavailable. They will not be removed.
+        </p>
+      } @else {
+        <p>This Widget Type is not currently used on your Dashboard.</p>
+      }
+      <div class="confirmation-dialog__actions">
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="cancelUninstall()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="danger-button"
+          (click)="confirmUninstall()"
+        >
+          Uninstall
+        </button>
+      </div>
+    </section>
+  }
+
+  @if (resetConfirmationOpen()) {
+    <div class="confirmation-backdrop"></div>
+    <section
+      class="confirmation-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reset-installations-title"
+    >
+      <h2 id="reset-installations-title">Reset installed widgets?</h2>
+      <p>
+        This permanently removes the damaged installation list. Existing Widget
+        Instances remain on the Dashboard as unavailable widgets.
+      </p>
+      <div class="confirmation-dialog__actions">
+        <button type="button" class="secondary-button" (click)="cancelReset()">
+          Cancel
+        </button>
+        <button type="button" class="danger-button" (click)="confirmReset()">
+          Reset installed widgets
+        </button>
+      </div>
+    </section>
+  }
+</main>
