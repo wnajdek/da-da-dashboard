@@ -81,6 +81,12 @@ The person or team that builds and publishes a separate Widget application and
 its Widget Manifest. A Widget Author owns the Widget's data fetching and
 domain-specific presentation.
 
+## Widget Project
+
+An independently built, tested, and versioned project owned by a Widget Author
+that publishes exactly one Widget Type. It may be stored beside the Dashboard
+for repository convenience, but it does not depend on the Dashboard source.
+
 ## Unavailable Widget
 
 A persisted Widget Instance whose type cannot currently be resolved to a
