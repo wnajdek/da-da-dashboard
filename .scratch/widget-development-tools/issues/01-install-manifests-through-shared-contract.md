@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] The contract package exposes the supported Manifest version, Widget Manifest shape, JSON-safe value types and validation, Widget Element configuration shape, and configuration-change event contract without depending on Angular.
-- [ ] The Dashboard validates a fetched Widget Manifest through the contract package before creating a Widget Installation.
-- [ ] Valid version-two Manifests remain installable with normalized same-origin entry bundle URLs.
-- [ ] Invalid, unsupported, or untrusted Manifests still fail with useful installation feedback and are not persisted.
-- [ ] Trusted Manifest Origin enforcement, duplicate detection, persistence recovery, and Unavailable Widget containment remain unchanged.
-- [ ] Contract and Dashboard tests cover valid and rejected installation paths, and the Dashboard production build passes.
+- [x] The contract package exposes the supported Manifest version, Widget Manifest shape, JSON-safe value types and validation, Widget Element configuration shape, and configuration-change event contract without depending on Angular.
+- [x] The Dashboard validates a fetched Widget Manifest through the contract package before creating a Widget Installation.
+- [x] Valid version-two Manifests remain installable with normalized same-origin entry bundle URLs.
+- [x] Invalid, unsupported, or untrusted Manifests still fail with useful installation feedback and are not persisted.
+- [x] Trusted Manifest Origin enforcement, duplicate detection, persistence recovery, and Unavailable Widget containment remain unchanged.
+- [x] Contract and Dashboard tests cover valid and rejected installation paths, and the Dashboard production build passes.
 

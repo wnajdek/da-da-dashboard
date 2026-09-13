@@ -1,5 +1,5 @@
 import { InjectionToken } from '@angular/core';
-import type { WidgetManifest } from './widget-manifest';
+import type { WidgetManifest } from '@da-da/widget-contract';
 
 export interface WidgetInstallation extends WidgetManifest {
   readonly manifestUrl: string;

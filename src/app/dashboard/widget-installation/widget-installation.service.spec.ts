@@ -57,6 +57,43 @@ describe('WidgetInstallationService', () => {
     expect(installations.installations()).toEqual([installation]);
   });
 
+  it('rejects an invalid fetched Widget Manifest without persisting it', async () => {
+    const storage = new MemoryStorage();
+    const source: WidgetManifestSource = {
+      load: jasmine.createSpy('load').and.resolveTo({ manifestVersion: 2 }),
+    };
+    configure(source, storage);
+    const installations = TestBed.inject(WidgetInstallationService);
+
+    await expectAsync(
+      installations.installManifest(installation.manifestUrl),
+    ).toBeResolvedTo({
+      status: 'rejected',
+      message: 'The Widget Manifest is invalid.',
+    });
+    expect(installations.installations()).toEqual([]);
+    expect(storage.length).toBe(0);
+  });
+
+  it('rejects an untrusted Manifest URL before fetching or persisting it', async () => {
+    const storage = new MemoryStorage();
+    const source: WidgetManifestSource = { load: jasmine.createSpy('load') };
+    configure(source, storage);
+    const installations = TestBed.inject(WidgetInstallationService);
+
+    await expectAsync(
+      installations.installManifest(
+        'https://untrusted.example.test/manifest.json',
+      ),
+    ).toBeResolvedTo({
+      status: 'rejected',
+      message: 'This Widget Manifest origin is not trusted.',
+    });
+    expect(source.load).not.toHaveBeenCalled();
+    expect(installations.installations()).toEqual([]);
+    expect(storage.length).toBe(0);
+  });
+
   it('keeps an installation available when removal cannot be persisted', () => {
     const storage = new MemoryStorage();
     configure({ load: jasmine.createSpy('load') }, storage);

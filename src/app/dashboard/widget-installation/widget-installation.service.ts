@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import type { Signal } from '@angular/core';
+import type { WidgetManifestValidationResult } from '@da-da/widget-contract';
 import {
   WIDGET_INSTALLATION_PERSISTENCE,
   type WidgetInstallation,
@@ -8,7 +9,7 @@ import {
   type WidgetInstallationsResetResult,
   type WidgetInstallationResult,
 } from './widget-installation.models';
-import { validateWidgetManifest } from './widget-manifest';
+import { validateDashboardWidgetManifest } from './widget-manifest';
 import { WIDGET_MANIFEST_SOURCE } from './widget-manifest-source';
 import { WidgetTrustPolicy } from './widget-trust-policy';
 
@@ -69,7 +70,7 @@ export class WidgetInstallationService {
         return this.reject('The Widget Manifest could not be read.');
       }
 
-      const validation = validateWidgetManifest(
+      const validation = validateDashboardWidgetManifest(
         rawManifest,
         trustedManifestUrl.url,
       );
@@ -196,7 +197,10 @@ export class WidgetInstallationService {
 }
 
 function widgetManifestErrorMessage(
-  reason: 'invalid' | 'unsupported-version' | 'untrusted-entry-bundle',
+  reason: Extract<
+    WidgetManifestValidationResult,
+    { status: 'invalid' }
+  >['reason'],
 ): string {
   switch (reason) {
     case 'unsupported-version':

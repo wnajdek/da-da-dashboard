@@ -1,6 +1,6 @@
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import type { Provider } from '@angular/core';
-import { normalizeHttpUrl } from './widget-manifest';
+import { normalizeHttpUrl } from '@da-da/widget-contract';
 import type { WidgetInstallation } from './widget-installation.models';
 
 export const TRUSTED_MANIFEST_ORIGINS = new InjectionToken<readonly string[]>(

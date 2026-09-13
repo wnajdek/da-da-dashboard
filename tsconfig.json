@@ -12,6 +12,10 @@
     "isolatedModules": true,
     "experimentalDecorators": true,
     "importHelpers": true,
+    "baseUrl": ".",
+    "paths": {
+      "@da-da/widget-contract": ["packages/widget-contract/src/public-api.ts"]
+    },
     "target": "ES2022",
     "module": "preserve"
   },

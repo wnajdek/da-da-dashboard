@@ -1,4 +1,4 @@
-import type { JsonObject } from './json-value';
+import type { JsonObject } from '@da-da/widget-contract';
 
 export type WidgetType = string;
 

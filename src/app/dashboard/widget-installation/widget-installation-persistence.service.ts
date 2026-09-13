@@ -1,7 +1,7 @@
 import { inject, Injectable, type Provider } from '@angular/core';
+import { isRecord, normalizeHttpUrl } from '@da-da/widget-contract';
 import { DASHBOARD_STORAGE } from '../workspace/dashboard-persistence.service';
-import { isRecord } from '../workspace/json-value';
-import { normalizeHttpUrl, validateWidgetManifest } from './widget-manifest';
+import { validateDashboardWidgetManifest } from './widget-manifest';
 import {
   WIDGET_INSTALLATION_PERSISTENCE,
   type WidgetInstallation,
@@ -128,7 +128,7 @@ function readWidgetInstallation(value: unknown): WidgetInstallation | null {
     return null;
   }
 
-  const result = validateWidgetManifest(value, manifestUrl);
+  const result = validateDashboardWidgetManifest(value, manifestUrl);
 
   if (result.status !== 'valid') {
     return null;

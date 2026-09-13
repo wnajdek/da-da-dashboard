@@ -12,19 +12,21 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import {
+  WIDGET_CONFIGURATION_CHANGED_EVENT,
+  decodeJsonObject,
+  type WidgetElementConfiguration,
+} from '@da-da/widget-contract';
 import type {
   WidgetConfiguration,
   WidgetConfigurationChange,
   WidgetInstance,
 } from '../workspace/dashboard.models';
-import { decodeJsonObject } from '../workspace/json-value';
 import { UnavailableWidgetCardComponent } from './unavailable-widget-card.component';
 import type { WidgetInstallation } from '../widget-installation/widget-installation.models';
 import { WidgetElementLoaderService } from '../widget-installation/widget-element-loader.service';
 
-interface WidgetElement extends HTMLElement {
-  configuration: WidgetConfiguration;
-}
+interface WidgetElement extends HTMLElement, WidgetElementConfiguration {}
 
 interface MountAttempt {
   element: WidgetElement | null;
@@ -129,7 +131,7 @@ export class WidgetElementComponent {
       attempt.onConfigurationChanged = (event: Event) =>
         this.handleConfigurationChanged(attempt, event);
       element.addEventListener(
-        'configuration-changed',
+        WIDGET_CONFIGURATION_CHANGED_EVENT,
         attempt.onConfigurationChanged,
       );
       this.assignConfiguration(attempt, this.configuration());
@@ -235,7 +237,7 @@ export class WidgetElementComponent {
 
     if (attempt.element !== null && attempt.onConfigurationChanged !== null) {
       attempt.element.removeEventListener(
-        'configuration-changed',
+        WIDGET_CONFIGURATION_CHANGED_EVENT,
         attempt.onConfigurationChanged,
       );
     }

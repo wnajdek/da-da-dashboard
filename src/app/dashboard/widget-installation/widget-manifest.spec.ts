@@ -1,7 +1,7 @@
 import {
   SUPPORTED_WIDGET_MANIFEST_VERSION,
   validateWidgetManifest,
-} from './widget-manifest';
+} from '@da-da/widget-contract';
 
 describe('validateWidgetManifest', () => {
   it('normalizes a valid manifest into the host installation shape', () => {

@@ -1,0 +1,20 @@
+{
+  "name": "@da-da/widget-contract",
+  "version": "0.1.0",
+  "description": "Framework-neutral Widget Manifest and Custom Element contract.",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --project tsconfig.build.json",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/public-api.d.ts",
+      "default": "./dist/public-api.js"
+    }
+  },
+  "sideEffects": false
+}
