@@ -1,12 +1,16 @@
+import { WEATHER_WIDGET_DEFINITION } from './weather-widget.definition';
+
 describe('weather widget entry bundle', () => {
   it('registers both v2 manifest elements with a configuration property', async () => {
     await import('./main');
-    await waitForElementRegistration('sample-weather-widget');
-    await waitForElementRegistration('sample-weather-widget-settings');
+    await waitForElementRegistration(WEATHER_WIDGET_DEFINITION.elementTag);
+    await waitForElementRegistration(
+      WEATHER_WIDGET_DEFINITION.settingsElementTag,
+    );
 
     for (const tag of [
-      'sample-weather-widget',
-      'sample-weather-widget-settings',
+      WEATHER_WIDGET_DEFINITION.elementTag,
+      WEATHER_WIDGET_DEFINITION.settingsElementTag,
     ]) {
       const element = document.createElement(tag) as HTMLElement & {
         configuration: unknown;
@@ -23,7 +27,7 @@ describe('weather widget entry bundle', () => {
     const { registerWeatherWidget } = await import('./main');
     const registry = {
       get: (tag: string) =>
-        tag === 'sample-weather-widget'
+        tag === WEATHER_WIDGET_DEFINITION.elementTag
           ? class extends HTMLElement {}
           : undefined,
       define: () =>

@@ -3,9 +3,7 @@ import { createApplication } from '@angular/platform-browser';
 import { createWeatherWidgetElement } from './weather-widget-element';
 import { WeatherWidgetSettingsComponent } from './weather-widget-settings.component';
 import { WeatherWidgetComponent } from './weather-widget.component';
-
-const CONTENT_ELEMENT_TAG = 'sample-weather-widget';
-const SETTINGS_ELEMENT_TAG = 'sample-weather-widget-settings';
+import { WEATHER_WIDGET_DEFINITION } from './weather-widget.definition';
 
 void registerWeatherWidget();
 
@@ -18,8 +16,8 @@ export async function registerWeatherWidget(
   registry: CustomElementRegistryPort = customElements,
 ): Promise<void> {
   if (
-    registry.get(CONTENT_ELEMENT_TAG) !== undefined ||
-    registry.get(SETTINGS_ELEMENT_TAG) !== undefined
+    registry.get(WEATHER_WIDGET_DEFINITION.elementTag) !== undefined ||
+    registry.get(WEATHER_WIDGET_DEFINITION.settingsElementTag) !== undefined
   ) {
     throw new Error('Weather widget element tags are already registered.');
   }
@@ -29,11 +27,11 @@ export async function registerWeatherWidget(
   });
 
   registry.define(
-    CONTENT_ELEMENT_TAG,
+    WEATHER_WIDGET_DEFINITION.elementTag,
     createWeatherWidgetElement(application, WeatherWidgetComponent),
   );
   registry.define(
-    SETTINGS_ELEMENT_TAG,
+    WEATHER_WIDGET_DEFINITION.settingsElementTag,
     createWeatherWidgetElement(application, WeatherWidgetSettingsComponent),
   );
 }

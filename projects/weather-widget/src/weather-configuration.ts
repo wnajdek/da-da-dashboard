@@ -3,11 +3,10 @@ import type {
   WeatherUnits,
 } from './weather-widget.models';
 import { isRecord } from './weather-guards';
+import { WEATHER_WIDGET_DEFINITION } from './weather-widget.definition';
 
-export const DEFAULT_WEATHER_CONFIGURATION: WeatherConfiguration = {
-  location: 'Cracow',
-  units: 'metric',
-};
+export const DEFAULT_WEATHER_CONFIGURATION: WeatherConfiguration =
+  WEATHER_WIDGET_DEFINITION.defaultConfiguration;
 
 export type WeatherConfigurationReadResult =
   | { readonly status: 'valid'; readonly configuration: WeatherConfiguration }

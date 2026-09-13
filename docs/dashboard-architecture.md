@@ -409,7 +409,7 @@ component by the Dashboard at runtime.
 | [`projects/weather-widget/src/weather-widget.component.ts`](../projects/weather-widget/src/weather-widget.component.ts)                   | Owns weather data fetching, validation states, and presentation                   |
 | [`projects/weather-widget/src/weather-widget-settings.component.ts`](../projects/weather-widget/src/weather-widget-settings.component.ts) | Owns Weather settings fields, validation, saving, and feedback                    |
 | [`projects/weather-widget/src/weather-data.service.ts`](../projects/weather-widget/src/weather-data.service.ts)                           | Fetches and validates geocoding and current-weather responses                     |
-| [`projects/weather-widget/public/widget-manifest.json`](../projects/weather-widget/public/widget-manifest.json)                           | Publishes the installable Widget metadata and bundle entry point                  |
+| [`projects/weather-widget/src/weather-widget.definition.ts`](../projects/weather-widget/src/weather-widget.definition.ts)                 | Defines the installable Widget metadata and bundle entry point                    |
 
 ## Current implementation status
 
@@ -467,8 +467,8 @@ Widget Author                 Dashboard Operator              Dashboard User
 ```
 
 1. The Widget Author builds `projects/weather-widget`. The production build
-   produces the Widget entry bundle and copies
-   `public/widget-manifest.json` beside it.
+   produces the Widget entry bundle and generates `widget-manifest.json` from
+   the typed Weather definition beside it.
 2. The Author publishes both files from one HTTPS origin. The manifest uses a
    relative `entryBundleUrl`, so the Dashboard resolves it against the
    manifest URL.
@@ -664,7 +664,7 @@ defaults, and preferred size before saving the installation.
 For the reference Widget:
 
 ```bash
-npx ng build weather-widget --configuration production
+npm run build:weather-widget
 ```
 
 The output is `dist/weather-widget/`. Publish the generated JavaScript entry
@@ -789,7 +789,7 @@ not hidden by the other:
 npx tsc -p tsconfig.app.json --noEmit
 npx tsc -p tsconfig.spec.json --noEmit
 npx ng build da-da-dashboard --configuration production
-npx ng build weather-widget --configuration production
+npm run build:weather-widget
 ```
 
 Run the full browser suite with the Chromium executable configured by the

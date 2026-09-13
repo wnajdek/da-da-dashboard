@@ -31,8 +31,8 @@ npx ng serve da-da-dashboard --port 4200
 ```
 
 ```bash
-# Terminal 2: rebuild the Widget whenever its source changes
-npx ng build weather-widget --configuration development --watch
+# Terminal 2: generate the Manifest and build the Widget
+npm run build:weather-widget
 ```
 
 ```bash
@@ -52,7 +52,8 @@ Dashboard:
 http://localhost:4201/widget-manifest.json
 ```
 
-The Widget build writes its files below `dist/weather-widget/browser/`. The
+The Widget build writes its files below `dist/weather-widget/browser/`. It
+generates `widget-manifest.json` from the typed Weather definition; the
 manifest points to `./main.js`, so the Dashboard loads the bundle from the same
 port. CORS is required because `localhost:4200` and `localhost:4201` are
 different browser origins.
@@ -89,7 +90,7 @@ npx ng build da-da-dashboard --configuration production
 Build the separately deployed reference Weather Widget with:
 
 ```bash
-npx ng build weather-widget --configuration production
+npm run build:weather-widget
 ```
 
 The production artifacts are written to `dist/da-da-dashboard/` and
