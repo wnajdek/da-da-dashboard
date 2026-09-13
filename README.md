@@ -93,6 +93,17 @@ Build the separately deployed reference Weather Widget with:
 npm run build:weather-widget
 ```
 
+Run the production-output conformance check locally or in continuous
+integration with:
+
+```bash
+npm run check
+```
+
+It builds the Widget, validates its generated Manifest and static entry bundle,
+then imports that bundle in headless Brave to verify the browser Widget
+contract. Set `CHROME_BIN` when Brave is installed elsewhere.
+
 The production artifacts are written to `dist/da-da-dashboard/` and
 `dist/weather-widget/`. The Widget manifest and entry bundle must be published
 from an origin configured in the Dashboard's Trusted Manifest Origin allowlist.
