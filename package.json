@@ -8,10 +8,12 @@
     "build:widget-contract": "tsc --project packages/widget-contract/tsconfig.build.json",
     "build:widget-angular": "tsc --project packages/widget-angular/tsconfig.build.json",
     "compile:weather-widget-definition": "tsc --project projects/weather-widget/tsconfig.definition.json",
+    "create:widget": "node packages/widget-project/bin/create-widget.mjs",
     "build:weather-widget": "npm run build:widget-contract && npm run build:widget-angular && npm run compile:weather-widget-definition && npx ng build weather-widget --configuration production && node projects/weather-widget/scripts/write-widget-manifest.mjs out-tsc/weather-widget-definition/projects/weather-widget/src/weather-widget.definition.js dist/weather-widget/browser/widget-manifest.json",
     "check": "npm run check:weather-widget",
     "check:weather-widget": "npm run build:weather-widget && node projects/weather-widget/scripts/check-built-widget.mjs dist/weather-widget/browser",
     "test:weather-widget-definition": "npm run build:widget-contract && npm run compile:weather-widget-definition && node --test projects/weather-widget/scripts/write-widget-manifest.test.mjs",
+    "test:widget-project": "node --test packages/widget-project/test/*.test.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

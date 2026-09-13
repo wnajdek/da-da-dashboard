@@ -4,15 +4,14 @@
 
 **Blocked by:** 04: Check built Weather Widget conformance.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] The command accepts interactive or command-line values for project name, Widget Type, display metadata, distinct Element tags, initial version, and preferred size.
-- [ ] Invalid names, tags, versions, or layout values are rejected before a partial project is left behind.
-- [ ] The generated project contains one typed Widget definition, content and settings components, and an author-owned runtime Widget Configuration reader.
-- [ ] Starter behavior demonstrates explicit invalid-configuration feedback and emits only a validated complete replacement configuration.
-- [ ] The project includes accessible starter markup and styling without defining a shared Dashboard theming API.
-- [ ] Project tests and the conformance command pass immediately after generation.
-- [ ] The production build emits a version-two Widget Manifest and self-contained entry bundle in one ready-to-host directory.
-- [ ] Generated source contains no Weather terminology, data logic, or imports from Dashboard source.
-- [ ] Running the generator again or upgrading its packages never overwrites an existing author's application code.
-
+- [x] The command accepts interactive or command-line values for project name, Widget Type, display metadata, distinct Element tags, initial version, and preferred size.
+- [x] Invalid names, tags, versions, or layout values are rejected before a partial project is left behind.
+- [x] The generated project contains one typed Widget definition, content and settings components, and an author-owned runtime Widget Configuration reader.
+- [x] Starter behavior demonstrates explicit invalid-configuration feedback and emits only a validated complete replacement configuration.
+- [x] The project includes accessible starter markup and styling without defining a shared Dashboard theming API.
+- [x] Project tests and the conformance command pass immediately after generation.
+- [x] The production build emits a version-two Widget Manifest and self-contained entry bundle in one ready-to-host directory.
+- [x] Generated source contains no Weather terminology, data logic, or imports from Dashboard source.
+- [x] Running the generator again or upgrading its packages never overwrites an existing author's application code.

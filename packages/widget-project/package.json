@@ -1,0 +1,16 @@
+{
+  "name": "@da-da/create-widget",
+  "version": "0.1.0",
+  "description": "Create an independent Angular Dashboard Widget Project.",
+  "type": "module",
+  "bin": {
+    "create-da-da-widget": "./bin/create-widget.mjs"
+  },
+  "files": [
+    "bin",
+    "lib"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}
