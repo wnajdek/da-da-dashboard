@@ -1,0 +1,24 @@
+{
+  "name": "@da-da/widget-angular",
+  "version": "0.1.0",
+  "description": "Angular Custom Element integration for Dashboard Widgets.",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/public-api.d.ts",
+      "default": "./dist/public-api.js"
+    }
+  },
+  "peerDependencies": {
+    "@angular/common": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@angular/platform-browser": "^20.0.0"
+  },
+  "dependencies": {
+    "@da-da/widget-contract": "^0.1.0"
+  },
+  "sideEffects": false
+}

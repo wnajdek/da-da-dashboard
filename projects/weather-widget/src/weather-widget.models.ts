@@ -1,6 +1,7 @@
 export type WeatherUnits = 'metric' | 'imperial';
 
 export interface WeatherConfiguration {
+  readonly [key: string]: string;
   readonly location: string;
   readonly units: WeatherUnits;
 }

@@ -4,10 +4,11 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "npm run build:widget-contract && ng build",
+    "build": "npm run build:widget-contract && npm run build:widget-angular && ng build",
     "build:widget-contract": "tsc --project packages/widget-contract/tsconfig.build.json",
+    "build:widget-angular": "tsc --project packages/widget-angular/tsconfig.build.json",
     "compile:weather-widget-definition": "tsc --project projects/weather-widget/tsconfig.definition.json",
-    "build:weather-widget": "npm run build:widget-contract && npm run compile:weather-widget-definition && npx ng build weather-widget --configuration production && node projects/weather-widget/scripts/write-widget-manifest.mjs out-tsc/weather-widget-definition/projects/weather-widget/src/weather-widget.definition.js dist/weather-widget/browser/widget-manifest.json",
+    "build:weather-widget": "npm run build:widget-contract && npm run build:widget-angular && npm run compile:weather-widget-definition && npx ng build weather-widget --configuration production && node projects/weather-widget/scripts/write-widget-manifest.mjs out-tsc/weather-widget-definition/projects/weather-widget/src/weather-widget.definition.js dist/weather-widget/browser/widget-manifest.json",
     "test:weather-widget-definition": "npm run build:widget-contract && npm run compile:weather-widget-definition && node --test projects/weather-widget/scripts/write-widget-manifest.test.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"

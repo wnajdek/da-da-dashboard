@@ -35,7 +35,7 @@ describe('weather widget entry bundle', () => {
     };
 
     await expectAsync(registerWeatherWidget(registry)).toBeRejectedWithError(
-      'Weather widget element tags are already registered.',
+      'Widget element tags are already registered.',
     );
   });
 });

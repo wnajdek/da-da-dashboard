@@ -6,6 +6,7 @@ import {
   input,
   signal,
 } from '@angular/core';
+import { emitWidgetConfigurationChanged } from '@da-da/widget-angular';
 import {
   areWeatherConfigurationsEqual,
   DEFAULT_WEATHER_CONFIGURATION,
@@ -177,11 +178,9 @@ export class WeatherWidgetSettingsComponent {
     this.pendingConfiguration = result.configuration;
     this.validationMessage.set(null);
     this.saveMessage.set(null);
-    this.hostElement.nativeElement.dispatchEvent(
-      new CustomEvent('configuration-changed', {
-        bubbles: true,
-        detail: result.configuration,
-      }),
+    emitWidgetConfigurationChanged(
+      this.hostElement.nativeElement,
+      result.configuration,
     );
   }
 

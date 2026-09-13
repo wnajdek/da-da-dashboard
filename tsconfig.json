@@ -14,7 +14,8 @@
     "importHelpers": true,
     "baseUrl": ".",
     "paths": {
-      "@da-da/widget-contract": ["packages/widget-contract/src/public-api.ts"]
+      "@da-da/widget-contract": ["packages/widget-contract/src/public-api.ts"],
+      "@da-da/widget-angular": ["packages/widget-angular/src/public-api.ts"]
     },
     "target": "ES2022",
     "module": "preserve"

@@ -4,14 +4,13 @@
 
 **Blocked by:** 02: Build Weather from one typed Widget definition.
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] The Angular integration package creates and reuses the Widget application's Angular environment and exposes both components through the tags in the Widget definition.
-- [ ] Configuration assigned before connection, after connection, and after a later Dashboard update reaches the mounted Angular component without recreating it.
-- [ ] Disconnecting and reconnecting an Element manages its Angular view safely without losing the latest configuration.
-- [ ] Registration rejects either tag collision before partially registering the Widget.
-- [ ] The package provides a typed way for a Widget Settings Element to emit a bubbling, complete replacement Widget Configuration.
-- [ ] The public Angular interface contains no Dashboard store, installation, routing, persistence, or Grid Layout implementation concerns.
-- [ ] Weather uses the package while preserving its loading, data, validation, settings-save, and failure behavior.
-- [ ] Focused lifecycle tests, Weather tests, Dashboard integration tests, and production builds pass.
-
+- [x] The Angular integration package creates and reuses the Widget application's Angular environment and exposes both components through the tags in the Widget definition.
+- [x] Configuration assigned before connection, after connection, and after a later Dashboard update reaches the mounted Angular component without recreating it.
+- [x] Disconnecting and reconnecting an Element manages its Angular view safely without losing the latest configuration.
+- [x] Registration rejects either tag collision before partially registering the Widget.
+- [x] The package provides a typed way for a Widget Settings Element to emit a bubbling, complete replacement Widget Configuration.
+- [x] The public Angular interface contains no Dashboard store, installation, routing, persistence, or Grid Layout implementation concerns.
+- [x] Weather uses the package while preserving its loading, data, validation, settings-save, and failure behavior.
+- [x] Focused lifecycle tests, Weather tests, Dashboard integration tests, and production builds pass.
