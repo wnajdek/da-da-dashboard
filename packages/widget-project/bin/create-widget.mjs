@@ -510,19 +510,77 @@ describe('WidgetSettingsComponent', () => {
     [
       "src/index.html",
       `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>${title}</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${title} preview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root { color: #172033; background: #f3f6fa; font: 16px/1.5 system-ui, sans-serif; }
+    body { margin: 0; }
+    main { box-sizing: border-box; width: min(100% - 2rem, 72rem); margin: 0 auto; padding: 2rem 0; }
+    header { margin-bottom: 1.5rem; }
+    h1, h2, p { margin-top: 0; }
+    h1 { margin-bottom: .25rem; }
+    .preview-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(18rem, 1fr); gap: 1rem; align-items: start; }
+    .preview-panel { min-width: 0; padding: 1rem; background: #fff; border: 1px solid #c8d1df; border-radius: .75rem; }
+    .preview-panel h2 { margin-bottom: 1rem; font-size: 1rem; }
+    .content-panel { grid-row: span 2; }
+    .manifest-url { overflow-wrap: anywhere; }
+    pre { overflow: auto; margin: 1rem 0 0; padding: .75rem; color: #d8e3f3; background: #172033; border-radius: .5rem; font: .8rem/1.5 ui-monospace, monospace; white-space: pre-wrap; }
+    @media (max-width: 48rem) { .preview-grid { grid-template-columns: 1fr; } .content-panel { grid-row: auto; } }
+  </style>
+</head>
 <body>
-  <main><h1>${title} preview</h1><p>Content and settings run through the browser Widget contract.</p><${project.elementTag}></${project.elementTag}><h2>Settings</h2><${project.settingsElementTag}></${project.settingsElementTag}></main>
+  <main>
+    <header>
+      <h1>${title} preview</h1>
+      <p>Content and settings run through the public browser Widget contract.</p>
+    </header>
+    <div class="preview-grid">
+      <section class="preview-panel content-panel" aria-labelledby="content-heading">
+        <h2 id="content-heading">Widget content</h2>
+        <${project.elementTag}></${project.elementTag}>
+      </section>
+      <section class="preview-panel" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">Widget settings</h2>
+        <${project.settingsElementTag}></${project.settingsElementTag}>
+      </section>
+      <section class="preview-panel" aria-labelledby="manifest-heading">
+        <h2 id="manifest-heading">Widget Manifest</h2>
+        <a class="manifest-url" id="manifest-url"></a>
+        <pre id="manifest-json" aria-live="polite">Loading Manifest…</pre>
+      </section>
+    </div>
+  </main>
   <script>
-    const configuration = { title: ${literal(project.displayName)} };
-    Promise.all([customElements.whenDefined(${literal(project.elementTag)}), customElements.whenDefined(${literal(project.settingsElementTag)})]).then(() => {
+    const manifestUrl = new URL('/widget-manifest.json', window.location.href).href;
+    const manifestLink = document.querySelector('#manifest-url');
+    const manifestJson = document.querySelector('#manifest-json');
+    manifestLink.href = manifestUrl;
+    manifestLink.textContent = manifestUrl;
+
+    Promise.all([
+      fetch('/widget-manifest.json').then((response) => {
+        if (!response.ok) throw new Error('The Widget Manifest could not be loaded.');
+        return response.json();
+      }),
+      customElements.whenDefined(${literal(project.elementTag)}),
+      customElements.whenDefined(${literal(project.settingsElementTag)}),
+    ]).then(([manifest]) => {
       const content = document.querySelector(${literal(project.elementTag)});
       const settings = document.querySelector(${literal(project.settingsElementTag)});
+      const configuration = manifest.defaultConfiguration;
+      manifestJson.textContent = JSON.stringify(manifest, null, 2);
       content.configuration = configuration; settings.configuration = configuration;
       settings.addEventListener('configuration-changed', (event) => { content.configuration = event.detail; settings.configuration = event.detail; });
+    }).catch((error) => {
+      manifestJson.setAttribute('role', 'alert');
+      manifestJson.textContent = error instanceof Error ? error.message : 'The Widget preview could not be started.';
     });
   </script>
-</body></html>
+</body>
+</html>
 `,
     ],
     ["scripts/start-widget.mjs", startWidgetScript()],
@@ -567,6 +625,7 @@ function angularConfiguration(name) {
                   index: "src/index.html",
                   tsConfig: "tsconfig.app.json",
                   inlineStyleLanguage: "css",
+                  preserveSymlinks: true,
                   assets: [{ glob: "**/*", input: "public" }],
                   styles: [],
                 },

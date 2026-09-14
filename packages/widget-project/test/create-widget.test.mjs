@@ -62,6 +62,9 @@ test("creates an Angular Widget Project from command-line values", async () => {
   const packageJson = JSON.parse(
     await readFile(join(output, "package.json"), "utf8"),
   );
+  const angularJson = JSON.parse(
+    await readFile(join(output, "angular.json"), "utf8"),
+  );
   const settings = await readFile(
     join(output, "src/widget-settings.component.ts"),
     "utf8",
@@ -88,11 +91,23 @@ test("creates an Angular Widget Project from command-line values", async () => {
   );
   assert.match(packageJson.scripts.test, /CHROME_BIN/);
   assert.equal(packageJson.scripts.start, "node scripts/start-widget.mjs");
+  assert.equal(
+    angularJson.projects["reading-list"].architect.build.options
+      .preserveSymlinks,
+    true,
+  );
   assert.match(startScript, /widget-manifest\.json/);
   assert.match(startScript, /http:\/\/localhost:4201\/widget-manifest\.json/);
   assert.match(startScript, /--headers/);
   assert.match(startScript, /Access-Control-Allow-Origin/);
   assert.match(preview, /customElements\.whenDefined/);
+  assert.match(preview, />Widget content</);
+  assert.match(preview, />Widget settings</);
+  assert.match(preview, />Widget Manifest</);
+  assert.match(preview, /id="manifest-url"/);
+  assert.match(preview, /id="manifest-json"/);
+  assert.match(preview, /fetch\('\/widget-manifest\.json'\)/);
+  assert.match(preview, /JSON\.stringify\(manifest, null, 2\)/);
   assert.match(preview, /content\.configuration = configuration/);
   assert.match(preview, /settings\.configuration = configuration/);
   assert.match(preview, /configuration-changed/);
