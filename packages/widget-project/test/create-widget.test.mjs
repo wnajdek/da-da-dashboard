@@ -74,6 +74,8 @@ test("creates an Angular Widget Project from command-line values", async () => {
     join(output, "scripts/start-widget.mjs"),
     "utf8",
   );
+  const preview = await readFile(join(output, "src/index.html"), "utf8");
+  const readme = await readFile(join(output, "README.md"), "utf8");
 
   assert.match(definition, /type: "reading-list"/);
   assert.match(definition, /elementTag: "example-reading-list"/);
@@ -88,6 +90,15 @@ test("creates an Angular Widget Project from command-line values", async () => {
   assert.equal(packageJson.scripts.start, "node scripts/start-widget.mjs");
   assert.match(startScript, /widget-manifest\.json/);
   assert.match(startScript, /http:\/\/localhost:4201\/widget-manifest\.json/);
+  assert.match(startScript, /--headers/);
+  assert.match(startScript, /Access-Control-Allow-Origin/);
+  assert.match(preview, /customElements\.whenDefined/);
+  assert.match(preview, /content\.configuration = configuration/);
+  assert.match(preview, /settings\.configuration = configuration/);
+  assert.match(preview, /configuration-changed/);
+  assert.match(preview, /content\.configuration = event\.detail/);
+  assert.match(preview, /settings\.configuration = event\.detail/);
+  assert.match(readme, /remove and reinstall/i);
   assert.doesNotMatch(
     `${definition}\n${configuration}\n${settings}\n${checker}`,
     /weather/i,

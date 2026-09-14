@@ -536,7 +536,7 @@ describe('WidgetSettingsComponent', () => {
     ],
     [
       "README.md",
-      `# ${project.displayName}\n\nThis independent Angular 20 Widget Project publishes one Widget Type: \`${project.type}\`.\n\nRun \`npm install\`, then:\n\n- \`npm start\` writes and prints http://localhost:4201/widget-manifest.json, then previews the content and settings Elements.\n- \`npm test\` runs starter application tests.\n- \`npm run check\` builds and checks the version-two Widget Manifest and browser Custom Element contract.\n- \`npm run build\` produces \`dist/${project.name}/browser/\`, ready for a static host.\n\nThe Widget is trusted same-page browser code. Do not place private credentials in it; use an author-owned backend when needed.\n`,
+      `# ${project.displayName}\n\nThis independent Angular 20 Widget Project publishes one Widget Type: \`${project.type}\`.\n\nRun \`npm install\`, then:\n\n- \`npm start\` writes and prints http://localhost:4201/widget-manifest.json, then starts the local preview. The development server serves the Manifest and JavaScript module with CORS enabled for installation in a local Dashboard.\n- \`npm test\` runs starter application tests.\n- \`npm run check\` builds and checks the version-two Widget Manifest and browser Custom Element contract.\n- \`npm run build\` produces \`dist/${project.name}/browser/\`, ready for a static host.\n\nInstall the printed Manifest URL in a local Dashboard whose operator has allowlisted \`http://localhost:4201\`. The preview only exercises the content and settings Widget Elements; it does not emulate Dashboard layout, persistence, installation, trust, or Widget Frame controls. If you change Manifest metadata, remove and reinstall the Widget Installation in the Dashboard before testing it.\n\nThe Widget is trusted same-page browser code. Do not place private credentials in it; use an author-owned backend when needed.\n`,
     ],
   ];
 }
@@ -633,7 +633,16 @@ await run(process.execPath, [
 ]);
 
 console.log('Widget Manifest URL: http://localhost:4201/widget-manifest.json');
-const server = spawn(command, ['ng', 'serve', '--port', '4201'], { stdio: 'inherit' });
+const server = spawn(command, [
+  'ng',
+  'serve',
+  '--host',
+  'localhost',
+  '--port',
+  '4201',
+  '--headers',
+  'Access-Control-Allow-Origin=*',
+], { stdio: 'inherit' });
 server.once('exit', (code) => { process.exitCode = code ?? 1; });
 
 function run(command, arguments_) {
