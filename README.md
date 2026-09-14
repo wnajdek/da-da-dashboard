@@ -58,6 +58,17 @@ manifest points to `./main.js`, so the Dashboard loads the bundle from the same
 port. CORS is required because `localhost:4200` and `localhost:4201` are
 different browser origins.
 
+`projects/focus-timer-widget/` is a second, contrasting Widget Project created
+with the public `create:widget` command. It is author-owned and has a local
+countdown behavior with a complete `{ task, durationMinutes }` Widget
+Configuration; it does not fetch weather or any remote data. Run its own
+commands after installing its declared public packages:
+
+```bash
+npm test --prefix projects/focus-timer-widget
+npm run check --prefix projects/focus-timer-widget
+```
+
 The Dashboard can use `ng serve` because it has an Angular `serve` target in
 `angular.json`. The Widget currently has only a build target, so its generated
 static files are served with `http-server`. After changing Widget code, reload
@@ -100,13 +111,14 @@ integration with:
 npm run check
 ```
 
-It builds the Widget, validates its generated Manifest and static entry bundle,
-then imports that bundle in headless Brave to verify the browser Widget
-contract. Set `CHROME_BIN` when Brave is installed elsewhere.
+It builds the Weather and Focus Timer Widgets, validates each generated Manifest
+and static entry bundle, then imports both bundles in headless Brave to verify
+the browser Widget contract. Set `CHROME_BIN` when Brave is installed elsewhere.
 
 The production artifacts are written to `dist/da-da-dashboard/` and
-`dist/weather-widget/`. The Widget manifest and entry bundle must be published
-from an origin configured in the Dashboard's Trusted Manifest Origin allowlist.
+`dist/weather-widget/` and `projects/focus-timer-widget/dist/`. Each Widget
+manifest and entry bundle must be published from an origin configured in the
+Dashboard's Trusted Manifest Origin allowlist.
 
 ## Running unit tests
 
@@ -114,7 +126,7 @@ To execute unit tests with the [Karma](https://karma-runner.github.io) test runn
 
 ```bash
 CHROME_BIN="${CHROME_BIN:-/usr/bin/brave-browser}" \
-npx ng test --no-watch --browsers=ChromeHeadless
+npm test
 ```
 
 ## Additional Resources

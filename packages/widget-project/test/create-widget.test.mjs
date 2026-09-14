@@ -283,6 +283,21 @@ test("declares only public package files and omits declaration source maps", asy
     await readFile(join(packageDirectory, "package.json"), "utf8"),
   );
   assert.deepEqual(packageJson.files, ["bin", "lib"]);
+
+  const angularPackageDirectory = fileURLToPath(
+    new URL("../../widget-angular/", import.meta.url),
+  );
+  const angularPackageJson = JSON.parse(
+    await readFile(join(angularPackageDirectory, "package.json"), "utf8"),
+  );
+  assert.equal(
+    angularPackageJson.peerDependencies["@da-da/widget-contract"],
+    "^0.1.0",
+  );
+  assert.equal(
+    angularPackageJson.dependencies?.["@da-da/widget-contract"],
+    undefined,
+  );
 });
 
 function runGenerator(...arguments_) {

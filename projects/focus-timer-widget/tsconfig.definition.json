@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/widget-definition",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "types": []
+  },
+  "files": [
+    "src/widget.definition.ts"
+  ]
+}

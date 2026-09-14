@@ -10,13 +10,18 @@
     "compile:weather-widget-definition": "tsc --project projects/weather-widget/tsconfig.definition.json",
     "create:widget": "node packages/widget-project/bin/create-widget.mjs",
     "build:weather-widget": "npm run build:widget-contract && npm run build:widget-angular && npm run compile:weather-widget-definition && npx ng build weather-widget --configuration production && node projects/weather-widget/scripts/write-widget-manifest.mjs out-tsc/weather-widget-definition/projects/weather-widget/src/weather-widget.definition.js dist/weather-widget/browser/widget-manifest.json",
-    "check": "npm run check:weather-widget",
+    "build:focus-timer-widget": "npm run build --prefix projects/focus-timer-widget",
+    "check": "npm run check:weather-widget && npm run check:focus-timer-widget",
     "check:weather-widget": "npm run build:weather-widget && node projects/weather-widget/scripts/check-built-widget.mjs dist/weather-widget/browser",
+    "check:focus-timer-widget": "npm run check --prefix projects/focus-timer-widget",
     "test:weather-widget-definition": "npm run build:widget-contract && npm run compile:weather-widget-definition && node --test projects/weather-widget/scripts/write-widget-manifest.test.mjs",
+    "test:dashboard": "CHROME_BIN=\"${CHROME_BIN:-/usr/bin/brave-browser}\" npx ng test da-da-dashboard --no-watch --browsers=ChromeHeadless",
+    "test:weather-widget": "CHROME_BIN=\"${CHROME_BIN:-/usr/bin/brave-browser}\" npx ng test weather-widget --no-watch --browsers=ChromeHeadless",
+    "test:focus-timer-widget": "npm test --prefix projects/focus-timer-widget",
     "test:widget-project": "node --test packages/widget-project/test/*.test.mjs",
     "smoke:widget-project": "bash scripts/smoke-generated-widget-project.sh",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "npm run test:dashboard && npm run test:weather-widget && npm run test:focus-timer-widget"
   },
   "prettier": {
     "overrides": [

@@ -16,9 +16,7 @@
   "peerDependencies": {
     "@angular/common": "^20.0.0",
     "@angular/core": "^20.0.0",
-    "@angular/platform-browser": "^20.0.0"
-  },
-  "dependencies": {
+    "@angular/platform-browser": "^20.0.0",
     "@da-da/widget-contract": "^0.1.0"
   },
   "sideEffects": false
