@@ -1,11 +1,10 @@
 #!/usr/bin/env node
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, relative, resolve } from "node:path";
+import { access, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createInterface } from "node:readline/promises";
 
 const packageDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const repositoryDirectory = resolve(packageDirectory, "..", "..");
 const optionsWithValues = new Set([
   "name",
   "type",
@@ -229,14 +228,6 @@ async function writeProject(project) {
 }
 
 async function projectFiles(project) {
-  const relativeContractPackage = localPackageReference(
-    project.outputDirectory,
-    "widget-contract",
-  );
-  const relativeAngularPackage = localPackageReference(
-    project.outputDirectory,
-    "widget-angular",
-  );
   const definitionName = constantName(project.name);
   const title = escapeHtml(project.displayName);
   const description =
@@ -265,8 +256,8 @@ async function projectFiles(project) {
             "@angular/common": "^20.1.0",
             "@angular/core": "^20.1.0",
             "@angular/platform-browser": "^20.1.0",
-            "@da-da/widget-angular": relativeAngularPackage,
-            "@da-da/widget-contract": relativeContractPackage,
+            "@da-da/widget-angular": "^0.1.0",
+            "@da-da/widget-contract": "^0.1.0",
             tslib: "^2.3.0",
           },
           devDependencies: {
@@ -277,6 +268,7 @@ async function projectFiles(project) {
             "jasmine-core": "~5.8.0",
             karma: "~6.4.0",
             "karma-chrome-launcher": "~3.2.0",
+            "karma-coverage": "~2.2.0",
             "karma-jasmine": "~5.1.0",
             "karma-jasmine-html-reporter": "~2.1.0",
             typescript: "~5.8.2",
@@ -599,12 +591,6 @@ describe('WidgetSettingsComponent', () => {
   ];
 }
 
-function localPackageReference(outputDirectory, packageName) {
-  const target = resolve(repositoryDirectory, "packages", packageName);
-  const path = relative(outputDirectory, target) || ".";
-  return `file:${path}`;
-}
-
 function angularConfiguration(name) {
   return (
     JSON.stringify(
@@ -742,9 +728,14 @@ function usage() {
   return "Usage: create-da-da-widget --name <project-name> --type <widget-type> --display-name <name> --element-tag <tag> --settings-element-tag <tag> --version <version> --width <columns> --height <rows> [--description <text>] [--output <directory>]\\n";
 }
 
+const invokedPath =
+  process.argv[1] === undefined
+    ? undefined
+    : await realpath(process.argv[1]).catch(() => resolve(process.argv[1]));
+
 if (
-  process.argv[1] !== undefined &&
-  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+  invokedPath !== undefined &&
+  import.meta.url === pathToFileURL(invokedPath).href
 ) {
   createWidgetProject(process.argv.slice(2)).catch((error) => {
     process.stderr.write(`${error.message}\\n`);

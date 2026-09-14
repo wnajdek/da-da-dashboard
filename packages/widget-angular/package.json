@@ -4,7 +4,8 @@
   "description": "Angular Custom Element integration for Dashboard Widgets.",
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.d.ts.map"
   ],
   "exports": {
     ".": {

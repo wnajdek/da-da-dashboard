@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -91,6 +91,10 @@ test("creates an Angular Widget Project from command-line values", async () => {
   );
   assert.match(packageJson.scripts.test, /CHROME_BIN/);
   assert.equal(packageJson.scripts.start, "node scripts/start-widget.mjs");
+  assert.equal(packageJson.dependencies["@da-da/widget-angular"], "^0.1.0");
+  assert.equal(packageJson.dependencies["@da-da/widget-contract"], "^0.1.0");
+  assert.equal(packageJson.devDependencies["karma-coverage"], "~2.2.0");
+  assert.doesNotMatch(JSON.stringify(packageJson.dependencies), /file:/);
   assert.equal(
     angularJson.projects["reading-list"].architect.build.options
       .preserveSymlinks,
@@ -122,6 +126,38 @@ test("creates an Angular Widget Project from command-line values", async () => {
     `${definition}\n${configuration}\n${settings}\n${checker}`,
     /dashboard\/src/,
   );
+});
+
+test("runs when npm invokes its installed symbolic-link command", async () => {
+  const workspace = await createWorkspace();
+  const command = join(workspace, "create-da-da-widget");
+  const output = join(workspace, "reading-list");
+  await symlink(generatorPath, command);
+
+  const result = runGeneratorAt(
+    command,
+    "--name",
+    "reading-list",
+    "--type",
+    "reading-list",
+    "--display-name",
+    "Reading list",
+    "--element-tag",
+    "example-reading-list",
+    "--settings-element-tag",
+    "example-reading-list-settings",
+    "--version",
+    "1.0.0",
+    "--width",
+    "3",
+    "--height",
+    "2",
+    "--output",
+    output,
+  );
+
+  assert.equal(result.status, 0, result.stderr);
+  await readFile(join(output, "package.json"), "utf8");
 });
 
 test("rejects invalid values before creating a partial Widget Project", async () => {
@@ -224,8 +260,37 @@ test("refuses a rerun without overwriting author application code", async () => 
   );
 });
 
+test("declares only public package files and omits declaration source maps", async () => {
+  for (const packageName of ["widget-contract", "widget-angular"]) {
+    const packageDirectory = fileURLToPath(
+      new URL(`../../${packageName}/`, import.meta.url),
+    );
+    const packageJson = JSON.parse(
+      await readFile(join(packageDirectory, "package.json"), "utf8"),
+    );
+    const buildConfiguration = JSON.parse(
+      await readFile(join(packageDirectory, "tsconfig.build.json"), "utf8"),
+    );
+
+    assert.deepEqual(packageJson.files, ["dist", "!dist/**/*.d.ts.map"]);
+    assert.equal(buildConfiguration.compilerOptions.declarationMap, false);
+  }
+
+  const packageDirectory = fileURLToPath(
+    new URL("../../widget-project/", import.meta.url),
+  );
+  const packageJson = JSON.parse(
+    await readFile(join(packageDirectory, "package.json"), "utf8"),
+  );
+  assert.deepEqual(packageJson.files, ["bin", "lib"]);
+});
+
 function runGenerator(...arguments_) {
-  return spawnSync(process.execPath, [generatorPath, ...arguments_], {
+  return runGeneratorAt(generatorPath, ...arguments_);
+}
+
+function runGeneratorAt(command, ...arguments_) {
+  return spawnSync(process.execPath, [command, ...arguments_], {
     encoding: "utf8",
   });
 }

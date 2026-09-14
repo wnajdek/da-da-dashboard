@@ -2,11 +2,13 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@da-da/widget-contract": ["packages/widget-contract/dist/public-api.d.ts"]
+      "@da-da/widget-contract": [
+        "packages/widget-contract/dist/public-api.d.ts"
+      ]
     }
   },
   "files": ["src/public-api.ts"]
