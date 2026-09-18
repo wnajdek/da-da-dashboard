@@ -12,6 +12,10 @@ import {
   readWidgetConfiguration,
 } from './widget-configuration';
 
+/**
+ * The settings half of the Widget. The Dashboard mounts its Custom Element in
+ * its own Settings Drawer; this component owns only widget-specific fields.
+ */
 @Component({
   selector: 'widget-settings',
   template: `
@@ -73,7 +77,11 @@ import {
   `,
 })
 export class WidgetSettingsComponent {
+  // Accept the same untrusted browser-contract input as the content Element.
   readonly configuration = input<unknown>(DEFAULT_WIDGET_CONFIGURATION);
+
+  // Draft signals let the user edit text without changing persisted
+  // configuration until they explicitly save a complete valid replacement.
   protected readonly draftTask = signal(DEFAULT_WIDGET_CONFIGURATION.task);
   protected readonly draftDurationMinutes = signal(
     String(DEFAULT_WIDGET_CONFIGURATION.durationMinutes),
@@ -82,6 +90,8 @@ export class WidgetSettingsComponent {
   private readonly hostElement = inject(ElementRef<HTMLElement>);
 
   constructor() {
+    // The Dashboard assigns the persisted configuration back after a save (or
+    // can assign it from elsewhere), so keep the form synchronized with it.
     effect(() => {
       const result = readWidgetConfiguration(this.configuration());
       this.draftTask.set(result.configuration.task);
@@ -93,6 +103,8 @@ export class WidgetSettingsComponent {
   }
 
   protected updateTask(event: Event): void {
+    // Event targets are not guaranteed to be inputs, even though this handler
+    // is attached to one in the template; narrow before reading `.value`.
     if (event.target instanceof HTMLInputElement) {
       this.draftTask.set(event.target.value);
       this.message.set(null);
@@ -107,6 +119,7 @@ export class WidgetSettingsComponent {
   }
 
   protected save(event: SubmitEvent): void {
+    // The Element event—not a form navigation—is the settings persistence API.
     event.preventDefault();
     const result = readWidgetConfiguration({
       task: this.draftTask(),
@@ -119,6 +132,9 @@ export class WidgetSettingsComponent {
     }
 
     this.message.set(null);
+    // The helper creates the required bubbling `configuration-changed` event
+    // with a complete JSON-safe replacement. The Dashboard persists it and
+    // later assigns that value back through `configuration`.
     emitWidgetConfigurationChanged(
       this.hostElement.nativeElement,
       result.configuration,

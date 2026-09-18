@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { WidgetComponent } from './widget.component';
 
 describe('WidgetComponent', () => {
+  // Use a fake clock so countdown behavior remains deterministic and fast.
   afterEach(() => jasmine.clock().uninstall());
 
   it('runs and resets a local countdown from its complete configuration', async () => {

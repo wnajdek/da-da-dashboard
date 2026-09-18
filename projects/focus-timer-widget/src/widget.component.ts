@@ -11,6 +11,11 @@ import {
   readWidgetConfiguration,
 } from './widget-configuration';
 
+/**
+ * The content half of the Widget. `registerAngularWidget` wraps this Angular
+ * component in the manifest-declared Custom Element, so it receives the
+ * browser contract's `configuration` value as an Angular input.
+ */
 @Component({
   selector: 'widget-content',
   template: `
@@ -106,7 +111,12 @@ import {
   `,
 })
 export class WidgetComponent {
+  // `unknown` deliberately mirrors the Custom Element boundary. Validate it
+  // before any value is rendered or used to calculate a countdown.
   readonly configuration = input<unknown>(DEFAULT_WIDGET_CONFIGURATION);
+
+  // Signals are local, reactive display state. Template-only members are
+  // protected so Angular can read them without exposing a public API.
   protected readonly task = signal(DEFAULT_WIDGET_CONFIGURATION.task);
   protected readonly message = signal<string | null>(null);
   protected readonly remainingSeconds = signal(
@@ -117,8 +127,13 @@ export class WidgetComponent {
   private countdownInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
+    // A Custom Element can be removed while a timer runs. Cleanup prevents a
+    // detached widget from retaining an interval or continuing to update.
     this.destroyRef.onDestroy(() => this.stopTimer());
 
+    // Re-run whenever the host assigns a new configuration. A replacement
+    // starts a fresh session, so an active interval is stopped before state
+    // is rebuilt from the validated value.
     effect(() => {
       const result = readWidgetConfiguration(this.configuration());
       this.stopTimer();
@@ -129,6 +144,8 @@ export class WidgetComponent {
   }
 
   protected minutes(): string {
+    // Formatting in the component keeps the template declarative and makes
+    // the countdown consistently display two digits.
     return String(Math.floor(this.remainingSeconds() / 60)).padStart(2, '0');
   }
 
@@ -143,6 +160,7 @@ export class WidgetComponent {
     }
 
     if (this.remainingSeconds() === 0) {
+      // Starting a finished session means starting a new configured session.
       this.resetTimer();
     }
 
@@ -169,6 +187,8 @@ export class WidgetComponent {
   }
 
   private stopTimer(): void {
+    // `clearInterval` is only valid for an interval we created. Clearing the
+    // stored handle and state makes repeated Pause, Reset, and destroy safe.
     if (this.countdownInterval !== null) {
       clearInterval(this.countdownInterval);
       this.countdownInterval = null;

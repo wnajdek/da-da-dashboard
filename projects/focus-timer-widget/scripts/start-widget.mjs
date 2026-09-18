@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
 
+// Compile the TypeScript-only definition first so the served Manifest always
+// comes from the same source of truth as the registered Elements.
 const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 await run(command, ['tsc', '--project', 'tsconfig.definition.json']);
@@ -10,6 +12,7 @@ await run(process.execPath, [
 ]);
 
 console.log('Widget Manifest URL: http://localhost:4201/widget-manifest.json');
+// CORS allows a locally running Dashboard to fetch this separately built Widget.
 const server = spawn(command, [
   'ng',
   'serve',
@@ -23,6 +26,7 @@ const server = spawn(command, [
 server.once('exit', (code) => { process.exitCode = code ?? 1; });
 
 function run(command, arguments_) {
+  // `spawn` is wrapped so each prerequisite must succeed before the next one.
   return new Promise((resolveRun, rejectRun) => {
     const process = spawn(command, arguments_, { stdio: 'inherit' });
     process.once('error', rejectRun);

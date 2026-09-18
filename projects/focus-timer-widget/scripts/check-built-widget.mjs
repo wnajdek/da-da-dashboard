@@ -13,6 +13,11 @@ import {
 const MANIFEST_FILE_NAME = "widget-manifest.json";
 const BROWSER_TIMEOUT_MS = 25_000;
 
+/**
+ * Check the static files a host will receive, rather than trusting a successful
+ * Angular compilation. It verifies both Manifest metadata and runtime browser
+ * behavior at the Custom Element boundary.
+ */
 export async function inspectBuildOutput(outputDirectory) {
   const resolvedOutputDirectory = resolve(outputDirectory);
   const manifestPath = resolve(resolvedOutputDirectory, MANIFEST_FILE_NAME);
@@ -86,6 +91,8 @@ export async function checkBuiltWidget(outputDirectory, browserPath) {
       throw new Error(result.diagnostic);
     }
 
+    // Registration must be all-or-nothing: a collision on either tag cannot
+    // leave a Dashboard with only one half of this Widget available.
     for (const tag of [
       build.manifest.elementTag,
       build.manifest.settingsElementTag,
@@ -196,6 +203,8 @@ async function serveBuildOutput(outputDirectory, manifest) {
   let serverUrl = null;
   const server = createServer(async (request, response) => {
     const requestUrl = new URL(request.url ?? "/", "http://localhost");
+    // The built Manifest has a relative bundle URL. The conformance page needs
+    // an absolute URL because it is generated under a private test route.
     const browserManifest = {
       ...manifest,
       entryBundleUrl: new URL(
@@ -295,6 +304,8 @@ function createCheckPage(manifest) {
     const definitions = [];
     const originalDefine = customElements.define.bind(customElements);
     let stage = 'importing the entry bundle';
+    // Observe tags registered by the entry bundle so the Manifest cannot claim
+    // tags that differ from the ones the browser actually receives.
     customElements.define = (tag, constructor, options) => {
       definitions.push(tag);
       return originalDefine(tag, constructor, options);
@@ -335,6 +346,8 @@ function createCheckPage(manifest) {
     }
 
     async function assertConfigurationAssignment(tag) {
+      // A host may configure an Element before or after it connects to the DOM.
+      // Both timings are part of the browser contract.
       const beforeConnection = document.createElement(tag);
       const beforeValue = { phase: 'before-connection' };
       beforeConnection.configuration = beforeValue;
@@ -356,6 +369,8 @@ function createCheckPage(manifest) {
     }
 
     async function assertSettingsEvent(tag) {
+      // The event is listened for on the page body, proving it bubbles out of the
+      // Settings Element as the Dashboard requires.
       const settings = document.createElement(tag);
       settings.configuration = manifest.defaultConfiguration;
       document.body.append(settings);
@@ -451,6 +466,8 @@ function createCollisionPage(manifest, collisionTag) {
       ? manifest.settingsElementTag
       : manifest.elementTag;
 
+  // Pre-register one tag, then ensure the bundle never leaves the other tag
+  // partially registered when its atomic registration detects the collision.
   return `<!doctype html><body><pre id="result">running</pre><script type="module">
     customElements.define(${JSON.stringify(collisionTag)}, class extends HTMLElement {});
     window.addEventListener('unhandledrejection', (event) => event.preventDefault());

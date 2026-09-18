@@ -1,6 +1,8 @@
 import { readWidgetConfiguration } from './widget-configuration';
 
 describe('readWidgetConfiguration', () => {
+  // Configuration arrives across a browser boundary, so invalid values must
+  // produce useful feedback and a safe complete fallback for either Element.
   it('returns explicit feedback for an invalid runtime configuration', () => {
     expect(
       readWidgetConfiguration({ task: '  ', durationMinutes: 25 }),

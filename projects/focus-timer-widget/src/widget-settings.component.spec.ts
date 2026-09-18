@@ -3,6 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { WidgetSettingsComponent } from './widget-settings.component';
 
 describe('WidgetSettingsComponent', () => {
+  // Exercise the DOM boundary: form input becomes one bubbling Custom Event
+  // with the full replacement configuration, not a partial field update.
   it('emits a complete validated replacement configuration', async () => {
     await TestBed.configureTestingModule({
       imports: [WidgetSettingsComponent],

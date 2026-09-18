@@ -43,12 +43,16 @@
     </div>
   </main>
   <script>
+    // This page is a local learning preview, not Dashboard code. It displays
+    // the published Manifest and wires the two Elements as a host would.
     const manifestUrl = new URL('/widget-manifest.json', window.location.href).href;
     const manifestLink = document.querySelector('#manifest-url');
     const manifestJson = document.querySelector('#manifest-json');
     manifestLink.href = manifestUrl;
     manifestLink.textContent = manifestUrl;
 
+    // Wait for both halves of the contract: the Manifest supplies defaults and
+    // the entry bundle must have registered both Custom Element tags.
     Promise.all([
       fetch('/widget-manifest.json').then((response) => {
         if (!response.ok) throw new Error('The Widget Manifest could not be loaded.');
@@ -61,8 +65,15 @@
       const settings = document.querySelector("sample-focus-timer-widget-settings");
       const configuration = manifest.defaultConfiguration;
       manifestJson.textContent = JSON.stringify(manifest, null, 2);
-      content.configuration = configuration; settings.configuration = configuration;
-      settings.addEventListener('configuration-changed', (event) => { content.configuration = event.detail; settings.configuration = event.detail; });
+      // A host assigns one complete configuration to both Elements. The real
+      // Dashboard persists a changed replacement before assigning it back;
+      // this preview deliberately skips persistence and mirrors it directly.
+      content.configuration = configuration;
+      settings.configuration = configuration;
+      settings.addEventListener('configuration-changed', (event) => {
+        content.configuration = event.detail;
+        settings.configuration = event.detail;
+      });
     }).catch((error) => {
       manifestJson.setAttribute('role', 'alert');
       manifestJson.textContent = error instanceof Error ? error.message : 'The Widget preview could not be started.';

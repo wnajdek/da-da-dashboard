@@ -3,6 +3,10 @@ import { dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { validateWidgetManifest } from '@da-da/widget-contract';
 
+/**
+ * Publish the typed definition as JSON only after checking the framework-neutral
+ * Widget Manifest contract. This makes malformed metadata fail during authoring.
+ */
 export async function writeWidgetManifest(definition, manifestPath) {
   const validation = validateWidgetManifest(definition, 'https://widget-author.invalid/widget-manifest.json');
   if (validation.status !== 'valid') throw new Error(`Widget definition violates the version-two Widget Manifest contract: ${validation.reason}.`);
@@ -10,6 +14,8 @@ export async function writeWidgetManifest(definition, manifestPath) {
   await writeFile(manifestPath, `${JSON.stringify(definition, null, 2)}\n`, 'utf8');
 }
 
+// This script also works as a CLI during build; import the compiled definition
+// because Node cannot directly execute the project's TypeScript source.
 const [definitionPath, manifestPath] = process.argv.slice(2);
 if (definitionPath === undefined || manifestPath === undefined) throw new Error('Usage: node write-widget-manifest.mjs <definition-module> <manifest-path>');
 const definition = await import(pathToFileURL(resolve(definitionPath)).href);

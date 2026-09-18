@@ -4,6 +4,24 @@ This independent Angular 20 Widget Project publishes one Widget Type: `focus-tim
 Its complete Widget Configuration is `{ task, durationMinutes }`: a local
 countdown has no remote data source.
 
+## Read this example in order
+
+The source is intentionally annotated for Angular developers who are new to
+the Dashboard Widget contract. Read it in this order:
+
+1. `src/widget.definition.ts` defines the one public Widget Manifest and the
+   two browser Element tags it promises to provide.
+2. `src/main.ts` registers those Elements through the Angular integration.
+3. `src/widget-configuration.ts` validates the complete configuration that
+   crosses the browser boundary.
+4. `src/widget.component.ts` implements the content Element; `src/widget-settings.component.ts`
+   implements the Settings Element and emits replacement configurations.
+5. `src/index.html` is a local preview that demonstrates the event loop. It is
+   not a replacement for Dashboard persistence or layout.
+6. `scripts/` shows how the Manifest is produced and how the static build is
+   checked against the browser contract. The accompanying `*.spec.ts` files
+   demonstrate focused Angular unit tests.
+
 It was created with the public command:
 
 ```bash
